@@ -1,0 +1,13 @@
+librosa == 0.7.2
+tensorboardX
+matplotlib
+fire
+unidecode
+pandas
+inflect
+torchvision
+opencv-python
+pyyaml <= 5.4
+tqdm
+data
+pycuda
