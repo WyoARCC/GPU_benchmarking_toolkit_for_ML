@@ -140,7 +140,7 @@ def parse_args(parser):
                       help='Capture leading silence with a space token')
     data.add_argument('--append-space-to-text', action='store_true',
                       help='Capture trailing silence with a space token')
-    data.add_argument('--num-workers', type=int, default=6,
+    data.add_argument('--num-workers', type=int, default=2,
                       help='Subprocesses for train and val DataLoaders')
     data.add_argument('--trainloader-repeats', type=int, default=100,
                       help='Repeats the dataset to prolong epochs')
