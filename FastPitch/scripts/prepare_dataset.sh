@@ -7,7 +7,7 @@ set -e
 
 python prepare_dataset.py \
     --wav-text-filelists filelists/ljs_audio_text.txt \
-    --n-workers 16 \
+    --n-workers 2 \
     --batch-size 1 \
     --dataset-path $DATA_DIR \
     --extract-pitch \
