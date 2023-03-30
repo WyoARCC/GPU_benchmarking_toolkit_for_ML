@@ -1,0 +1,16 @@
+Bootstrap: docker
+From: nvidia/cuda:11.6.0-cudnn8-runtime-rockylinux8
+Stage: spython-base
+
+%files
+. /workspace/tts
+%post
+dnf module install python38 -y
+dnf update -y && \
+dnf install -y  cuda-toolkit-11-6 make git cmake python38-devel libsndfile lapack
+
+cd /workspace/tts
+pip3 --no-cache-dir install --upgrade pip
+pip3 --no-cache-dir install -e .[all,dev,notebooks]
+pip3 --no-cache-dir install TTS
+make install
