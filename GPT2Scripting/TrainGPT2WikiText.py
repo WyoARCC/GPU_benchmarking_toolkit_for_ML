@@ -5,7 +5,7 @@
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-from transformers import AutoTokenizer, GPT2Model, GPT2Config, DataCollatorWithPadding, AdamW, get_scheduler
+from transformers import GPT2Model, GPT2Tokenizer, DataCollatorWithPadding, AdamW, get_scheduler
 import torch
 from torch.utils.data import DataLoader
 from datasets import load_dataset
@@ -14,8 +14,8 @@ from tqdm.auto import tqdm
 import evaluate
 
 
-checkpoint = "gpt2"
-tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+checkpoint = 'gpt2-xl'
+tokenizer = GPT2Tokenizer.from_pretrained(checkpoint)
 
 
 def wiki_dataset():
@@ -58,8 +58,7 @@ if __name__ == '__main__':
     # {k: v.shape for k, v in batch.items()}
 
     # model declaration
-    config = GPT2Config()
-    model = GPT2Model(config)
+    model = GPT2Model.from_pretrained('gpt2-xl')
     optimizer = AdamW(model.parameters(), lr=5e-5)
 
     # Cuda Hardware Initialization (multiGPU)
