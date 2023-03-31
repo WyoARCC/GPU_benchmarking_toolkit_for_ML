@@ -66,7 +66,7 @@ if __name__ == '__main__':
     model.to(device)
 
     # epoch declaration and initializing training loop parameters
-    num_epochs = 20
+    num_epochs = 5
     num_training_steps = num_epochs * len(train_dataloader)
     lr_scheduler = get_scheduler(
         "linear",
