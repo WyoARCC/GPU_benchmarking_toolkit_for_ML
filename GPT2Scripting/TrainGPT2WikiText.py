@@ -28,17 +28,17 @@ def wiki_dataset():
     # a tokenizer when you instantiate it (to know which padding token to use, and whether the model expects padding
     # to be on the left or on the right of the inputs) and will do everything you need:
     tokenized_datasets = raw_datasets.map(tokenize_function, batched=True)
+    tokenizer.pad_token = tokenizer.eos_token
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
     # Remove columns: with values "sentence1", "sentence2", "idx" and set tensor format to Pytorch
-    tokenized_datasets = tokenized_datasets.remove_columns(["sentence1", "sentence2", "idx"])
-    tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
+    tokenized_datasets = tokenized_datasets.remove_columns(["text"])
     tokenized_datasets.set_format("torch")
 
     return tokenized_datasets, data_collator
 
 
 def tokenize_function(example):
-    return tokenizer(example["sentence1"], example["sentence2"], truncation=True)
+    return tokenizer(example["text"], truncation=True)
 
 
 if __name__ == '__main__':
@@ -100,6 +100,6 @@ if __name__ == '__main__':
 
         logits = outputs.logits
         predictions = torch.argmax(logits, dim=-1)
-        metric.add_batch(predictions=predictions, references=batch["labels"])
+        metric.add_batch(predictions=predictions, references=batch["text"])
 
     metric.compute()
