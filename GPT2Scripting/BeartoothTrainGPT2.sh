@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --account=arcc-students -
+#SBATCH --account=arcc-students
 #SBATCH --time=12:00:00
 #SBATCH --job-name=GPUBenchMarkGPT2
 #SBATCH --nodes=1
@@ -12,7 +12,7 @@
 #SBATCH --output=GPUBenchMarkGPT2_%A.log
 #SBATCH --gres=gpu:2
 #SBATCH --partition=beartooth-gpu
-
+$SLURM_JOB_ID
 echo "Load Modules:"
 module load miniconda3/4.12.0
 echo "Activate Conda Environment"
