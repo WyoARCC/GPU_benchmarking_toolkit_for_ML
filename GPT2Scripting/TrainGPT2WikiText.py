@@ -3,103 +3,119 @@
 # Model: Training GPT2 with Wikitext103-v1 from HuggingFace
 # Backend: Pytorch
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-from transformers import GPT2Model, GPT2Tokenizer, DataCollatorWithPadding, AdamW, get_scheduler
+from transformers import GPT2TokenizerFast, GPT2Config, GPT2LMHeadModel
 import torch
 from torch.utils.data import DataLoader
+import psutil
 from datasets import load_dataset
 # progress bar
 from tqdm.auto import tqdm
-import evaluate
+
+max_length = 1024  # maximum length of input sequence
+model_config = GPT2Config.from_pretrained("gpt2-xl", output_hidden_states=True)
+model = GPT2LMHeadModel.from_pretrained("gpt2-xl", config=model_config)
 
 
-checkpoint = 'gpt2-xl'
-tokenizer = GPT2Tokenizer.from_pretrained(checkpoint)
+def preprocess_function(examples):  # THIS SHOULD WORK NOW
+    tokenizer_pp = GPT2TokenizerFast.from_pretrained("gpt2-xl")
+    for i in range(len(examples["text"])):
+        examples["text"][i] = examples["text"][i].strip().replace("\n", "<eos>")
+    return tokenizer_pp(examples["text"])
 
 
-def wiki_dataset():
+def wiki_dataset(core_count: int):
     # loads Wikitext dataset and tokenizes it using the GPT2Tokenizer
+
     # using Huggingface dataset library
-    raw_datasets = load_dataset("wikitext", "wikitext-103-v1")
-    # 🤗 Tokenizers library already uses multiple threads to tokenize the samples we have to define a collate
-    # function that will apply the correct amount of padding to the items of the dataset we want to batch together.
-    # Fortunately, the 🤗 Transformers library provides us with such a function via DataCollatorWithPadding. It takes
-    # a tokenizer when you instantiate it (to know which padding token to use, and whether the model expects padding
-    # to be on the left or on the right of the inputs) and will do everything you need:
-    tokenized_datasets = raw_datasets.map(tokenize_function, batched=True)
-    tokenizer.padding_side = "right"
-    tokenizer.pad_token = tokenizer.eos_token
-    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
-    # Remove columns: with values "sentence1", "sentence2", "idx" and set tensor format to Pytorch
-    tokenized_datasets.set_format("torch")
+    train_datasets = load_dataset("wikitext", "wikitext-103-v1", split="train", num_proc=core_count)
+    train_datasets.save_to_disk('training_wikitext_dataset')
 
-    return tokenized_datasets, data_collator
-
-
-def tokenize_function(example):
-    return tokenizer(example["text"], truncation=True)
+    eval_datasets = load_dataset("wikitext", "wikitext-103-v1", split="validation", num_proc=core_count)
+    eval_datasets.save_to_disk('validation_wikitext_dataset')
+    # Preprocess the datasets
+    ordered_train_dataset = train_datasets.map(
+        preprocess_function,
+        batched=True,
+    )
+    ordered_validation_dataset = eval_datasets.map(
+        preprocess_function,
+        batched=True,
+    )
+    # Format to Pytorch Requirements
+    processed_train_dataset = ordered_train_dataset.format(type="torch",
+                                                           columns=["input_ids", "token_type_ids",
+                                                                    "attention_mask"])
+    processed_eval_dataset = ordered_validation_dataset.format(type="torch",
+                                                               columns=["input_ids", "token_type_ids",
+                                                                        "attention_mask"])
+    return processed_train_dataset, processed_eval_dataset
 
 
 if __name__ == '__main__':
-    # print(wiki_dataset())
-    # load preprocessed Wikitext and collator
-    Wiki_RAW, Collator, = wiki_dataset()
-    # Define Data Loaders
-    train_dataloader = DataLoader(
-        Wiki_RAW["train"], shuffle=True, batch_size=8, collate_fn=Collator
-    )
-    eval_dataloader = DataLoader(
-        Wiki_RAW["validation"], shuffle=True, batch_size=8, collate_fn=Collator
-    )
-    # To VALIDATE data processing uncomment below:
-    # for batch in train_dataloader:
-    #    break
-    # {k: v.shape for k, v in batch.items()}
+    # KEEP TRACK OF THESE WHEN DEVELOPING UI/UX
+    num_epochs = 4
+    batch_size = 1
+    accumulation_steps = 128 // batch_size
+    tokenization_core_count = 10
+    tokenizer = GPT2TokenizerFast.from_pretrained("gpt2-xl")
+    # load preprocessed Wikitext
+    Wiki_train, Wiki_validate = wiki_dataset(tokenization_core_count)
 
     # model declaration
-    model = GPT2Model.from_pretrained('gpt2-xl')
-    optimizer = AdamW(model.parameters(), lr=5e-5)
-
-    # Cuda Hardware Initialization (multiGPU)
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+    criterion = torch.nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)
+    # hardware declaration
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
 
-    # epoch declaration and initializing training loop parameters
-    num_epochs = 5
-    num_training_steps = num_epochs * len(train_dataloader)
-    lr_scheduler = get_scheduler(
-        "linear",
-        optimizer=optimizer,
-        num_warmup_steps=0,
-        num_training_steps=num_training_steps,
-    )
+    # data loaders
+    train_dataloader = torch.utils.data.DataLoader(Wiki_train, batch_size=batch_size, shuffle=True, )
+    eval_dataloader = torch.utils.data.DataLoader(Wiki_validate, batch_size=batch_size, shuffle=False)
 
     # TRAINING LOOP: MAIN EVENT ONLY DEPLOY WHEN READY
-    progress_bar = tqdm(range(num_training_steps))
+
     model.train()
     for epoch in range(num_epochs):
-        for batch in train_dataloader:
-            batch = {k: v.to(device) for k, v in batch.items()}
-            outputs = model(**batch)
-            loss = outputs.loss
-            loss.backward()
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad()
-            progress_bar.update(1)
+        model.train()
+        total_loss = 0
+        progress_bar = tqdm(train_dataloader, desc=f"Epoch {epoch + 1}", unit="batch")
+        for step, batch_list in enumerate(train_dataloader):
+            for batch in batch_list:
+                input_ids = batch["input_ids"].to(device)
+                attention_mask = batch["attention_mask"].to(device)
+                labels = batch["input_ids"].to(device)
 
-    # Evaluation LOOP: MAIN EVENT ONLY DEPLOY WHEN READY
-    metric = evaluate.load("wikitext", "wikitext-103-v1")
-    model.eval()
-    model.eval()
-    for batch in eval_dataloader:
-        batch = {k: v.to(device) for k, v in batch.items()}
-        with torch.no_grad():
-            outputs = model(**batch)
+                optimizer.zero_grad()
+                outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+                loss = criterion(outputs.logits.view(-1, outputs.logits.size(-1)), labels.view(-1))
+                loss.backward()
 
-        logits = outputs.logits
-        predictions = torch.argmax(logits, dim=-1)
-        metric.add_batch(predictions=predictions, references=batch["text"])
+                total_loss += loss.item()
 
-    metric.compute()
+                if (step + 1) % accumulation_steps == 0:
+                    optimizer.step()
+                    model.zero_grad()
+                progress_bar.set_postfix(
+                    {"batch_loss": loss.item(), "avg_loss": total_loss / ((step + 1) * len(batch_list))})
+            gpu_memory = torch.cuda.max_memory_allocated(device=device)
+            ram_memory = psutil.Process().memory_info().rss / 1024 ** 2  # in MB
+            print(f"GPU memory = {gpu_memory / 1024 ** 2:.2f} GB, RAM memory = {ram_memory:.2f} MB")
+
+        avg_train_loss = total_loss / len(train_dataloader)
+        model.eval()
+        total_eval_loss = 0
+        for batch in eval_dataloader:
+            with torch.no_grad():
+                input_ids = batch["input_ids"].squeeze().to(device)
+                attention_mask = batch["attention_mask"].squeeze().to(device)
+                labels = batch["input_ids"].squeeze().to(device)
+
+                outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+                loss = criterion(outputs.logits.view(-1, outputs.logits.size(-1)), labels.view(-1))
+                total_eval_loss += loss.item()
+
+        avg_eval_loss = total_eval_loss / len(eval_dataloader)
+
+        print(f"Epoch {epoch + 1}:")
+        print(f"Train Loss: {avg_train_loss:.4f}")
+        print(f"Eval Loss: {avg_eval_loss:.4f}")
