@@ -27,19 +27,21 @@ def wiki_dataset(core_count: int):
     # loads Wikitext dataset and tokenizes it using the GPT2Tokenizer
 
     # using Huggingface dataset library
-    train_datasets = load_dataset("wikitext", "wikitext-103-v1", split="train", num_proc=core_count)
+    train_datasets = load_dataset("wikitext", "wikitext-103-v1", split="train")
     train_datasets.save_to_disk('training_wikitext_dataset')
 
-    eval_datasets = load_dataset("wikitext", "wikitext-103-v1", split="validation", num_proc=core_count)
+    eval_datasets = load_dataset("wikitext", "wikitext-103-v1", split="validation")
     eval_datasets.save_to_disk('validation_wikitext_dataset')
     # Preprocess the datasets
     ordered_train_dataset = train_datasets.map(
         preprocess_function,
         batched=True,
+        num_proc=core_count
     )
     ordered_validation_dataset = eval_datasets.map(
         preprocess_function,
         batched=True,
+        num_proc=core_count
     )
     # Format to Pytorch Requirements
     processed_train_dataset = ordered_train_dataset.format(type="torch",
