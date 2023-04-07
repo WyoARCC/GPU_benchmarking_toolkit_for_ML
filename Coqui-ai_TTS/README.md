@@ -10,6 +10,9 @@ Most of the files in this folder are from [coqui-ai's TTS repository](https://gi
 ## Release notes
 
 ### Changelog
+2023/04/07
+- Added support for tracking resource utilization using [memprof](https://github.com/IGBIllinois/memprof) and [gpustat](https://github.com/wookayin/gpustat). 
+
 2023/03/30:
 - Initial commit.
 
