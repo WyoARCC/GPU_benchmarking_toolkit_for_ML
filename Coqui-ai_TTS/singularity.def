@@ -9,9 +9,14 @@ dnf module install python38 -y
 dnf update -y && \
 dnf install -y  cuda-toolkit-11-7 make git cmake python38-devel libsndfile lapack pigz
 
+mkdir memory_profiler
+cd memory_profiler
+git clone https://github.com/IGBIllinois/memprof
 cd /workspace/tts
 pip3 --no-cache-dir install --upgrade pip
 pip3 --no-cache-dir install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
 pip3 --no-cache-dir install -e .[all,dev,notebooks]
 pip3 --no-cache-dir install TTS
 make install
+pip3 uninstall pynvml -y
+pip3 --no-cache-dir install gpustat

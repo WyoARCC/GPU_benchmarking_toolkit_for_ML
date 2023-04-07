@@ -5,3 +5,5 @@ mv /workspace/fastspeech /larger_workspace
 cd /larger_workspace/fastspeech
 mn=$(hostname)
 bash run_test.sh > "/GPU_logs/$mn-log.txt" 2>&1
+mv /larger_workspace/fastspeech/memprof "/GPU_logs/$mn-memprof"
+mv /larger_workspace/fastspeech/gpustat.log "/GPU_logs/$mn-gpustat.log"

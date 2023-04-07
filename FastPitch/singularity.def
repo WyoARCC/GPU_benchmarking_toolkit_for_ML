@@ -20,5 +20,10 @@ From: nvcr.io/nvidia/pytorch:22.08-py3
 
 FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:22.08-py3
 
+mkdir memory_profiler
+cd memory_profiler
+git clone https://github.com/IGBIllinois/memprof
 cd /workspace/fastpitch
 pip install -r requirements.txt
+pip uninstall pynvml -y
+pip --no-cache-dir install gpustat

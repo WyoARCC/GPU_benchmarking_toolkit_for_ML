@@ -15,6 +15,10 @@
 ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:22.08-py3
 FROM ${FROM_IMAGE_NAME}
 
+WORKDIR /
+RUN mkdir memory_profiler
+WORKDIR /memory_profiler
+RUN git clone https://github.com/IGBIllinois/memprof
 ENV PYTHONPATH /workspace/fastpitch
 WORKDIR /workspace/fastpitch
 
@@ -22,3 +26,5 @@ ADD requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY . .
+RUN pip uninstall pynvml -y
+RUN pip --no-cache-dir install gpustat

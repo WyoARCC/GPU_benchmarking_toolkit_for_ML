@@ -1,13 +1,23 @@
 #!/bin/bash
 
+export PATH=/memory_profiler/memprof/bin:$PATH
 export OM_NUM_THREADS=2
+export CUDA_VISIBLE_DEVICES=0
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Getting Data!"
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo ""
 echo ""
-time python3 -c 'from TTS.utils.downloaders import download_ljspeech; download_ljspeech("./recipes/ljspeech/");'
+time python3 -c 'from TTS.utils.downloaders import download_ljspeech; download_ljspeech("./recipes/ljspeech/");' 
+
+echo ""
+echo "---------------------------------------------------------------------------------------------------------------------------------------------"
+echo "Launching GPUSTAT!"
+echo "---------------------------------------------------------------------------------------------------------------------------------------------"
+echo ""
+echo ""
+gpustat -a -i 60 > gpustat.log 2>&1 &
 
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
@@ -15,7 +25,10 @@ echo "Training TTS Model!"
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo ""
 echo ""
-time CUDA_VISIBLE_DEVICES="0" python3 TTS/bin/train_tts.py --config_path config.json
+time memprof.sh python3 TTS/bin/train_tts.py --config_path config.json &
+PID=$!
+echo "PID: $PID"
+wait $PID
 
 
 echo ""
@@ -25,4 +38,7 @@ echo "--------------------------------------------------------------------------
 echo ""
 echo ""
 
-time CUDA_VISIBLE_DEVICES=0 python3 train_vocoder.py
+time memprof.sh python3 train_vocoder.py &
+PID=$!
+echo "PID: $PID"
+wait $PID

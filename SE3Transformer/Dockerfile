@@ -50,6 +50,10 @@ RUN export NCCL_ROOT=/usr \
 
 FROM ${FROM_IMAGE_NAME}
 
+WORKDIR /
+RUN mkdir memory_profiler
+WORKDIR /memory_profiler
+RUN git clone https://github.com/IGBIllinois/memprof
 WORKDIR /workspace/se3-transformer
 
 # copy built DGL and install it
@@ -65,3 +69,5 @@ ENV DGLBACKEND=pytorch
 ENV OMP_NUM_THREADS=1
 
 
+RUN pip uninstall pynvml -y
+RUN pip --no-cache-dir install gpustat
