@@ -1,7 +1,8 @@
-//Must be initialized in Conda + pip envrionment (Pycharm defaults to these types of environments when using Conda)
-Python==3.10.0
-pip==23.0.1
-transformers==4.24.0 //huggingface
-Torch==1.12.1
-evaluate==0.4.0 //huggingface
-datasets==2.10.1 //huggingface
+# Install packages using pip
+transformers~=4.27.4
+datasets~=2.11.0
+torch~=2.0.0
+tqdm~=4.65.0
+evaluate
+
+psutil~=5.9.4
