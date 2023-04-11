@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import matplotlib.ticker
 import numpy as np
 import sys
 import argparse
@@ -144,7 +143,7 @@ def main():
         ax.plot(sorted_events[item][0], sorted_events[item][1], label=item)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%D-%H:%M:%S'))
     ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=event_interval))
-    ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator(2))
+    ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
     ax.xaxis.get_ticklocs(minor=True)
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
