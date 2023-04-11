@@ -18,6 +18,9 @@ python3 gpustat_plot.py /location/of/file.log
 ```
 This will generate the three utilization graphs in the same directory as the file specified to the script. These utilization graphs will be named after the file used to create them. As an example, a file named file1.log will produce three graphs: file1.log_GPU_Utilization.png, file1.log_Power_Utilization.png, and file1.log_VRAM_Utilization.png.
 ### Changelog
+2023/04/11
+- Updated code to display legend and updated the example files to display the legend.
+
 2023/04/10
 - Initial commit.
 
