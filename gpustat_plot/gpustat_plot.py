@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.ticker
 import numpy as np
 import sys
 import argparse
@@ -114,6 +115,7 @@ def main():
     logfile_handle.close()
     # The GPU events are in chronological order but if multiple GPUs where used then that data will be mixed in.
     sorted_events = {}
+    events_count = 0
     for event in events:
         gpu_id = event.gpu_type
         if gpu_id not in sorted_events:
@@ -128,7 +130,10 @@ def main():
         vram_utilization = sub_list[3]
         vram_utilization.append(event.ram_use)
         sorted_events[gpu_id] = sub_list
+        events_count = events_count + 1
     event_key_list = sorted(sorted_events)
+    # Setting an interval to use for the number of GPU events to limit the number that is displayed.
+    event_interval = int(events_count / 20)
 
     # Plot GPU utilization.
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -138,8 +143,8 @@ def main():
     for item in event_key_list:
         ax.plot(sorted_events[item][0], sorted_events[item][1], label=item)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%D-%H:%M:%S'))
-    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=30))
-    ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=event_interval))
+    ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator(2))
     ax.xaxis.get_ticklocs(minor=True)
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
@@ -156,7 +161,7 @@ def main():
     for item in event_key_list:
         ax.plot(sorted_events[item][0], sorted_events[item][2], label=item)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%D-%H:%M:%S'))
-    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=30))
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=event_interval))
     ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
     ax.xaxis.get_ticklocs(minor=True)
     plt.minorticks_on()
@@ -174,7 +179,7 @@ def main():
     for item in event_key_list:
         ax.plot(sorted_events[item][0], sorted_events[item][3], label=item)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%D-%H:%M:%S'))
-    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=30))
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=event_interval))
     ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
     ax.xaxis.get_ticklocs(minor=True)
     plt.minorticks_on()
