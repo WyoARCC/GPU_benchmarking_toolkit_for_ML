@@ -20,6 +20,7 @@ This will generate the three utilization graphs in the same directory as the fil
 ### Changelog
 2023/04/11
 - Updated code to display legend and updated the example files to display the legend.
+- Updated code to dynamically set interval for the x axis in generated plots.
 
 2023/04/10
 - Initial commit.
