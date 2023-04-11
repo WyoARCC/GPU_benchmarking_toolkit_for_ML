@@ -144,6 +144,7 @@ def main():
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
         label.set(rotation=45, horizontalalignment='right')
+    plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
     plt.tight_layout()
     plt.savefig(f'{cl_args.filename}_GPU_Utilization.png')
 
@@ -161,6 +162,7 @@ def main():
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
         label.set(rotation=45, horizontalalignment='right')
+    plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
     plt.tight_layout()
     plt.savefig(f'{cl_args.filename}_Power_Utilization.png')
 
@@ -178,6 +180,7 @@ def main():
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
         label.set(rotation=45, horizontalalignment='right')
+    plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
     plt.tight_layout()
     plt.savefig(f'{cl_args.filename}_VRAM_Utilization.png')
 
