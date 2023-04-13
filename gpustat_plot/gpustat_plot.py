@@ -102,9 +102,25 @@ def main():
         description='Reads a file containing the output of the gpustat program that has been running in watch mode '
                     'and generates GPU utilization plots for each unique process.'
     )
-    cl_parser.add_argument('filename')
+    cl_parser.add_argument('filename', help='File to process.')
+    cl_parser.add_argument('-H', '--height', type=float, default=5, help='Height for generated plots. '
+                                                                         'Default is 5 inches.')
+    cl_parser.add_argument('-W', '--width', type=float, default=10, help='Width for generated plots. '
+                                                                         'Default is 10 inches.')
+    cl_parser.add_argument('-i', '--interval', type=int, default=60, help='Interval in seconds between labels on x axis.'
+                                                                          ' Default is 60.')
+    cl_parser.add_argument('-n', '--no-legend', action='store_true', help='Remove the legend for generated plots.')
+    cl_parser.add_argument('-r', '--rename', type=str, help='Base file name to rename generated plots to.')
     cl_args = cl_parser.parse_args()
     logfile_name = cl_args.filename
+    height = cl_args.height
+    width = cl_args.width
+    no_legend = cl_args.no_legend
+    event_interval = cl_args.interval
+    if cl_args.rename is not None:
+        save_name = cl_args.rename
+    else:
+        save_name = cl_args.filename
     try:
         logfile_handle = open(logfile_name, 'r')
     except OSError:
@@ -114,7 +130,6 @@ def main():
     logfile_handle.close()
     # The GPU events are in chronological order but if multiple GPUs where used then that data will be mixed in.
     sorted_events = {}
-    events_count = 0
     for event in events:
         gpu_id = event.gpu_type
         if gpu_id not in sorted_events:
@@ -129,64 +144,62 @@ def main():
         vram_utilization = sub_list[3]
         vram_utilization.append(event.ram_use)
         sorted_events[gpu_id] = sub_list
-        events_count = events_count + 1
     event_key_list = sorted(sorted_events)
     # Setting an interval to use for the number of GPU events to limit the number that is displayed.
-    event_interval = int(events_count / 20)
-
     # Plot GPU utilization.
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(width, height))
+
     plt.ylabel("Percent GPU Utilization")
     plt.xlabel("Time")
     plt.title("GPU Utilization Over Time")
     for item in event_key_list:
         ax.plot(sorted_events[item][0], sorted_events[item][1], label=item)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%D-%H:%M:%S'))
-    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=event_interval))
-    ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
+    ax.xaxis.set_major_locator(mdates.SecondLocator(interval=event_interval))
     ax.xaxis.get_ticklocs(minor=True)
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
         label.set(rotation=45, horizontalalignment='right')
-    plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+    if no_legend is False:
+        plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
     plt.tight_layout()
-    plt.savefig(f'{cl_args.filename}_GPU_Utilization.png')
+    plt.savefig(f'{save_name}_GPU_Utilization.png')
 
     # Plot Power utilization.
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(width, height))
     plt.ylabel("Power Consumed By GPU (Watts)")
     plt.xlabel("Time")
     plt.title("Power Consumption Over Time")
     for item in event_key_list:
         ax.plot(sorted_events[item][0], sorted_events[item][2], label=item)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%D-%H:%M:%S'))
-    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=event_interval))
-    ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
+    ax.xaxis.set_major_locator(mdates.SecondLocator(interval=event_interval))
     ax.xaxis.get_ticklocs(minor=True)
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
         label.set(rotation=45, horizontalalignment='right')
-    plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+    if no_legend is False:
+        plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
     plt.tight_layout()
-    plt.savefig(f'{cl_args.filename}_Power_Utilization.png')
+    plt.savefig(f'{save_name}_Power_Utilization.png')
 
     # Plot VRAM utilization.
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(width, height))
     plt.ylabel("VRAM Utilized (Megabytes)")
     plt.xlabel("Time")
     plt.title("VRAM Utilization Over Time")
     for item in event_key_list:
         ax.plot(sorted_events[item][0], sorted_events[item][3], label=item)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%D-%H:%M:%S'))
-    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=event_interval))
-    ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
+    ax.xaxis.set_major_locator(mdates.SecondLocator(interval=event_interval))
     ax.xaxis.get_ticklocs(minor=True)
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
         label.set(rotation=45, horizontalalignment='right')
-    plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+    if no_legend is False:
+        plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
     plt.tight_layout()
-    plt.savefig(f'{cl_args.filename}_VRAM_Utilization.png')
+    plt.savefig(f'{save_name}_VRAM_Utilization.png')
 
 
 if __name__ == "__main__":
