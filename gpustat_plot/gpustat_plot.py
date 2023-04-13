@@ -107,8 +107,8 @@ def main():
                                                                          'Default is 5 inches.')
     cl_parser.add_argument('-W', '--width', type=float, default=10, help='Width for generated plots. '
                                                                          'Default is 10 inches.')
-    cl_parser.add_argument('-i', '--interval', type=int, default=60, help='Interval in seconds between labels on x axis.'
-                                                                          ' Default is 60.')
+    cl_parser.add_argument('-i', '--interval', type=int, default=30, help='Interval in minutes between labels on x axis.'
+                                                                          ' Default is 30.')
     cl_parser.add_argument('-n', '--no-legend', action='store_true', help='Remove the legend for generated plots.')
     cl_parser.add_argument('-r', '--rename', type=str, help='Base file name to rename generated plots to.')
     cl_args = cl_parser.parse_args()
@@ -155,7 +155,7 @@ def main():
     for item in event_key_list:
         ax.plot(sorted_events[item][0], sorted_events[item][1], label=item)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%D-%H:%M:%S'))
-    ax.xaxis.set_major_locator(mdates.SecondLocator(interval=event_interval))
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=event_interval))
     ax.xaxis.get_ticklocs(minor=True)
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
@@ -173,7 +173,7 @@ def main():
     for item in event_key_list:
         ax.plot(sorted_events[item][0], sorted_events[item][2], label=item)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%D-%H:%M:%S'))
-    ax.xaxis.set_major_locator(mdates.SecondLocator(interval=event_interval))
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=event_interval))
     ax.xaxis.get_ticklocs(minor=True)
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
@@ -191,7 +191,7 @@ def main():
     for item in event_key_list:
         ax.plot(sorted_events[item][0], sorted_events[item][3], label=item)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%D-%H:%M:%S'))
-    ax.xaxis.set_major_locator(mdates.SecondLocator(interval=event_interval))
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=event_interval))
     ax.xaxis.get_ticklocs(minor=True)
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
