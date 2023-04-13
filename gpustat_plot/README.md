@@ -17,9 +17,10 @@ cd GPU_benchmarking_toolkit_for_ML/gpustat_plot/
 python3 gpustat_plot.py /location/of/file.log
 ```
 This will generate the three utilization graphs in the same directory as the file specified to the script. These utilization graphs will be named after the file used to create them. As an example, a file named file1.log will produce three graphs: file1.log_GPU_Utilization.png, file1.log_Power_Utilization.png, and file1.log_VRAM_Utilization.png.
+
 The example files are generated with the following command:
 ```
-python3 gpustat_plot.py ./example/se3-transformer-job-rtx2080-jvdgz-gpustat.log -i 1020
+python3 gpustat_plot.py ./example/se3-transformer-job-rtx2080-jvdgz-gpustat.log -i 17
 ```
 ### Changelog
 2023/04/13
