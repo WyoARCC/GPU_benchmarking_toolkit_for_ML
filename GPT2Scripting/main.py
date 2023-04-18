@@ -57,7 +57,7 @@ def infer(inp):
 
 
 # Define Device for Training
-device = torch.device("cuda")  # if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0,1")  # if torch.cuda.is_available() else "cpu")
 
 # tokenizer Declaration and special token Declaration
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2-xl")
