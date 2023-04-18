@@ -13,7 +13,7 @@ Requires [matplotlib](https://pypi.org/project/matplotlib) to run.
 To run the application clone the Repo then run the script on the file.
 ```
 git clone https://github.com/WyoARCC/GPU_benchmarking_toolkit_for_ML
-cd GPU_benchmarking_toolkit_for_ML/gpustat_plot/
+cd GPU_benchmarking_toolkit_for_ML/GPUSTAT_Plot/
 python3 gpustat_plot.py /location/of/file.log
 ```
 This will generate the three utilization graphs in the same directory as the file specified to the script. These utilization graphs will be named after the file used to create them. As an example, a file named file1.log will produce three graphs: file1.log_GPU_Utilization.png, file1.log_Power_Utilization.png, and file1.log_VRAM_Utilization.png.
@@ -23,6 +23,11 @@ The example files are generated with the following command:
 python3 gpustat_plot.py ./example/se3-transformer-job-rtx2080-jvdgz-gpustat.log -i 17
 ```
 ### Changelog
+2023/04/18
+- Refactored code that generates the plot to a function.
+- Added code that allows splitting multiple GPUs into separate  plots.
+- Renamed the subdirectory to fit name scheme of other subdirectories. 
+
 2023/04/13
 - Added command line flags to allow customization of the generated plots from the command line.
 
