@@ -6,13 +6,22 @@
 import json
 import torch
 from torch.utils.data import Dataset
+
 torch.cuda.empty_cache()
 from tqdm import tqdm
+from multiprocessing import Pool
+
+
+def tokenize_batch(tokenizer, batch):
+    return tokenizer(batch, truncation=True,
+                     max_length=1024,
+                     padding="max_length",
+                     return_tensors='pt')
 
 
 class GPTData(Dataset):
     # noinspection PyPep8Naming
-    def __init__(self, path: str, tokenizer_pp):
+    def __init__(self, path: str, tokenizer_pp, num_workers):
         self.data = json.load(open(path, 'r', encoding="utf-8"))
         self.tmpList = []
         for j in self.data["data"]:
@@ -25,16 +34,26 @@ class GPTData(Dataset):
                 break
         # Don't access the "text" label
         self.tmpList = self.tmpList[:1000]  # change back to :-1
+
         print(self.tmpList[0])
 
         self.tmpList_encoded = []
-        for batch_idx in tqdm(range(0, len(self.tmpList), 64), desc='Tokenizing...'):
-            batch = self.tmpList[batch_idx:batch_idx + 64]
-            tmpList_encoded_batch = tokenizer_pp(batch, truncation=True,
-                                                 max_length=1024,
-                                                 padding="max_length",
-                                                 return_tensors='pt')
-            self.tmpList_encoded.append(tmpList_encoded_batch)
+        with Pool(processes=num_workers) as pool:
+            for batch_idx in tqdm(range(0, len(self.tmpList), 64), desc='Tokenizing...'):
+                batch = self.tmpList[batch_idx:batch_idx + 64]
+                tmpList_encoded_batch = pool.apply_async(tokenize_batch, (tokenizer_pp, batch))
+                self.tmpList_encoded.append(tmpList_encoded_batch)
+
+            self.tmpList_encoded = [result.get() for result in self.tmpList_encoded]
+
+        # for batch_idx in tqdm(range(0, len(self.tmpList), 64), desc='Tokenizing...'):
+        # batch = self.tmpList[batch_idx:batch_idx + 64]
+        # tmpList_encoded_batch = tokenizer_pp(batch, truncation=True,
+        # max_length=1024,
+        # padding="max_length",
+        # return_tensors='pt')
+
+        # self.tmpList_encoded.append(tmpList_encoded_batch)
 
         self.input_ids = []
         self.attention_mask = []

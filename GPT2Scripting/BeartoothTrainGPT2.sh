@@ -19,14 +19,18 @@ module load miniconda3/4.12.0
 module load sarcc/1.0
 module load gcc/11.2.0
 module load cuda/11.8.0
-echo "Activate Conda Environment"
+echo "Modules Loaded"
+echo "Activate Conda Environment:"
 conda activate /pfs/tc1/project/arcc-students/tlimato/GPT2_SHDev/GPT2Script
-echo "Creating Environment Variables"
-#Equal to Number of GPU's Requested
+echo "Creating Environment Variables:"
+#Equal to Number of GPUs Requested
 export WORLD_SIZE=2
-#Automatically Handeled by SLURM
+#Automatically Handled by SLURM
 export RANK=$SLURM_PROCID
 export LOCAL_RANK=$SLURM_LOCALID
+export CUDA_VISIBLE_DEVICES=0,1  # Set the IDs of the GPUs to use
+echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"  # Print out the GPUs being used
+echo "Environmental Variables Initialized."
 
 python torch.distributed.launch main.py
 

@@ -18,7 +18,7 @@ torch.cuda.empty_cache()
 # Initialize the process group
 dist.init_process_group(
     backend="nccl",
-    init_method="tcp://%h:%x",
+    init_method="env://",  # Alternative: "tcp://%h:%x"
     world_size=int(os.environ['WORLD_SIZE']),
     rank=int(os.environ['RANK'])
 )
@@ -96,7 +96,7 @@ else:
     train_data.save_to_json('wikitext-103-v1-train.json')
 
 # Instantiate preprocessing class object with current tokenizer and specified train dataset JSON file
-TrainChatData = GPTData('wikitext-103-v1-train.json', tokenizer)
+TrainChatData = GPTData('wikitext-103-v1-train.json', tokenizer, 10)
 
 # Create distributed version of the dataset
 print("Distributing Data Set...")
@@ -116,7 +116,7 @@ else:
     validation_data = LoadWikiText('validation')
     validation_data.save_to_json('wikitext-103-v1-validation.json')
 # Instantiate preprocessing class object with current tokenizer and specified train dataset JSON file
-ValidationChatData = GPTData('wikitext-103-v1-validation.json', tokenizer)
+ValidationChatData = GPTData('wikitext-103-v1-validation.json', tokenizer, 10)
 
 # Create distributed version of the dataset
 val_sampler = torch.utils.data.distributed.DistributedSampler(
