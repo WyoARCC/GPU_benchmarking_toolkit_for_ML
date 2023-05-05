@@ -23,6 +23,9 @@ The example files are generated with the following command:
 python3 utilization_plot.py ./example/se3-transformer-job-rtx2080-jvdgz-gpustat.log -i 17
 ```
 ### Changelog
+2023/05/05
+- Added a time offest flag to get GPU time events and CPU time events to align.
+
 2023/05/04
 - Updated code to process files created by memprof and add them to the GPU utilization plot.
 - Renamed script and folder to correspond with new functionality of script.

@@ -98,8 +98,9 @@ def process_gpu_log(logfile):
             continue
         else:
             time_raw = header_list[4].split(":")
-            time_event = datetime.datetime(int(header_list[5]), get_month_number(header_list[2]), int(header_list[3]),
-                                           int(time_raw[0]), int(time_raw[1]), int(time_raw[2])).isoformat()
+            time_event = np.datetime64(datetime.datetime(int(header_list[5]), get_month_number(header_list[2]),
+                                                         int(header_list[3]), int(time_raw[0]), int(time_raw[1]),
+                                                         int(time_raw[2])).isoformat())
             utilization = usage_list[1].split()
             ram_usage = usage_list[2].split()
             events.append(
@@ -118,7 +119,7 @@ def process_cpu_log(logfile):
     for log_line in logfile:
         usage = log_line.split(',')
         # Convert the Linux epoch to datetime object.
-        time_stamp = datetime.datetime.fromtimestamp(int(usage[0]))
+        time_stamp = np.datetime64(datetime.datetime.fromtimestamp(int(usage[0])).isoformat())
         threads = usage[1]
         cpu = usage[2]
         vmsize = usage[3]
@@ -196,6 +197,7 @@ def main():
     cl_parser.add_argument('-n', '--no-legend', action='store_true', help='Remove the legend for generated plots.')
     cl_parser.add_argument('-r', '--rename', type=str, help='Base file name to rename generated plots to.')
     cl_parser.add_argument('-s', '--split', action='store_true', help='Split multiple GPUs out into separate plots.')
+    cl_parser.add_argument('-o', '--offset', type=int, default=0, help='Time in hours to offset the GPU timing.')
     cl_parser.add_argument('--cpu-files', nargs='+', help='List of memprof.csv files. '
                                                           'Ex) memprof-42.csv memprof-1138.csv...')
     cl_args = cl_parser.parse_args()
@@ -225,7 +227,7 @@ def main():
             sorted_events.update({gpu_id: [[], [], [], []]})
         sub_list = sorted_events[gpu_id]
         times = sub_list[0]
-        times.append(np.datetime64(event.time_stamp))
+        times.append(event.time_stamp + np.timedelta64(cl_args.offset, 'h'))
         gpu_utilization = sub_list[1]
         gpu_utilization.append(event.utilization)
         power_utilization = sub_list[2]
