@@ -41,8 +41,6 @@ def train_and_validate(trainer_data, val_data, model_pass, optimizer, scheduler_
             optimizer.step()
             scheduler_pass.step(loss, epoch_pass)
             num_iterations = 0
-        del loss, outputs, inputs, targets
-        gc.collect()
     if num_iterations != 0:
         optimizer.step()
         scheduler_pass.step(loss, epoch_pass)
