@@ -25,6 +25,7 @@ def train_and_validate(trainer_data, val_data, model_pass, optimizer, scheduler_
     model_pass.train()
     train_loss = 0
     val_loss = 0
+    accumulation_steps = 16
     torch.set_default_tensor_type("torch.FloatTensor")
     # Training loop
     for batch in tqdm(trainer_data, desc='Training Batch', leave=False):
