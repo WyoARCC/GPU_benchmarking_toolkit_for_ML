@@ -33,27 +33,26 @@ class GPTData(Dataset):
             except:
                 break
         # Don't access the "text" label
-        self.tmpList = self.tmpList[:1000]  # change back to :-1
+        self.tmpList = self.tmpList[:-1]  # change back to :-1
 
-        print(self.tmpList[0])
+        # print(self.tmpList[0])
 
         self.tmpList_encoded = []
-        with Pool(processes=num_workers) as pool:
-            for batch_idx in tqdm(range(0, len(self.tmpList), 64), desc='Tokenizing...'):
-                batch = self.tmpList[batch_idx:batch_idx + 64]
-                tmpList_encoded_batch = pool.apply_async(tokenize_batch, (tokenizer_pp, batch))
-                self.tmpList_encoded.append(tmpList_encoded_batch)
+        #for batch_idx in tqdm(range(0, len(self.tmpList), 8), desc='Tokenizing...'):
+        #    batch = self.tmpList[batch_idx:batch_idx + 8]
+        #    tmpList_encoded_batch = pool.apply_async(tokenize_batch, (tokenizer_pp, batch))
+        #    self.tmpList_encoded.append(tmpList_encoded_batch)
 
-            self.tmpList_encoded = [result.get() for result in self.tmpList_encoded]
+        #self.tmpList_encoded = [result.get() for result in self.tmpList_encoded]
 
-        # for batch_idx in tqdm(range(0, len(self.tmpList), 64), desc='Tokenizing...'):
-        # batch = self.tmpList[batch_idx:batch_idx + 64]
-        # tmpList_encoded_batch = tokenizer_pp(batch, truncation=True,
-        # max_length=1024,
-        # padding="max_length",
-        # return_tensors='pt')
+        for batch_idx in tqdm(range(0, len(self.tmpList), 8), desc='Tokenizing...'):
+           batch = self.tmpList[batch_idx:batch_idx + 8]
+           tmpList_encoded_batch = tokenizer_pp(batch, truncation=True,
+           max_length=1024,
+           padding="max_length",
+           return_tensors='pt')
 
-        # self.tmpList_encoded.append(tmpList_encoded_batch)
+        self.tmpList_encoded.append(tmpList_encoded_batch)
 
         self.input_ids = []
         self.attention_mask = []
