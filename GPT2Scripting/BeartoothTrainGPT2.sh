@@ -32,7 +32,7 @@ export RANK=$SLURM_PROCID
 export NUM_GPUS=2
 export LOCAL_RANK=$SLURM_LOCALID
 export CUDA_VISIBLE_DEVICES=0,1  # Set the IDs of the GPUs to use
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=2
 echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"  # Print out the GPUs being used
 echo "Environmental Variables Initialized."
 
