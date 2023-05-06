@@ -132,4 +132,4 @@ for epoch in range(5):
     train_and_validate(TrainChatData, ValidationChatData, model, optim, scheduler, epoch)
     accelerator.wait_for_everyone()
     unwrapped_model = accelerator.unwrap_model(model)
-    unwrapped_model.save(unwrapped_model.state_dict(), f"model_state_{epoch}.pt")
+    torch.save(unwrapped_model.state_dict(), f"model_state_{epoch}.pt")
