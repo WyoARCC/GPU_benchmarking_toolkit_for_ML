@@ -100,7 +100,7 @@ TrainChatData = GPTData('wikitext-103-v1-train.json', tokenizer, 20)
 
 # Create distributed version of the dataset
 print("Distributing Data Set...")
-TrainChatData = DataLoader(TrainChatData, batch_size=16, pin_memory=True, shuffle=False)
+TrainChatData = DataLoader(TrainChatData, batch_size=32, pin_memory=True, shuffle=False)
 
 # Load Wikitext-103-v1 Validation Split and convert it to .json formatting
 if os.path.exists('wikitext-103-v1-validation.json'):
@@ -113,7 +113,7 @@ else:
 ValidationChatData = GPTData('wikitext-103-v1-validation.json', tokenizer, 20)
 
 # Create distributed version of the dataset
-ValidationChatData = DataLoader(ValidationChatData, batch_size=16, pin_memory=False)
+ValidationChatData = DataLoader(ValidationChatData, batch_size=32, pin_memory=False)
 
 # Set Up Training
 optim = Adam(model.parameters(), lr=5e-6)
