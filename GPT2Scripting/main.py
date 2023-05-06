@@ -17,7 +17,8 @@ from accelerate import Accelerator
 import torch
 
 # Define Device for Training
-accelerator = Accelerator(mixed_precision='fp16')
+num_gpus = os.environ.get('NUM_GPUS', -1)
+accelerator = Accelerator(mixed_precision='fp16', num_gpus=int(num_gpus)
 criterion = CrossEntropyLoss()
 
 
