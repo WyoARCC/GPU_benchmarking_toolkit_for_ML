@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import numpy as np
+import matplotlib.ticker
 import sys
 import argparse
 import datetime
@@ -98,9 +97,9 @@ def process_gpu_log(logfile):
             continue
         else:
             time_raw = header_list[4].split(":")
-            time_event = np.datetime64(datetime.datetime(int(header_list[5]), get_month_number(header_list[2]),
+            time_event = datetime.datetime(int(header_list[5]), get_month_number(header_list[2]),
                                                          int(header_list[3]), int(time_raw[0]), int(time_raw[1]),
-                                                         int(time_raw[2])).isoformat())
+                                                         int(time_raw[2]))
             utilization = usage_list[1].split()
             ram_usage = usage_list[2].split()
             events.append(
@@ -112,6 +111,11 @@ def process_gpu_log(logfile):
 
 
 def process_cpu_log(logfile):
+    """
+    Reads the files produced by memprof and constructs a list of cpu_usage_events.
+    :param logfile: List of memprof log files.
+    :return: List of cpu_usage_events.
+    """
     events = []
     # Skip the header in the CSV file.
     for i in range(6):
@@ -119,7 +123,7 @@ def process_cpu_log(logfile):
     for log_line in logfile:
         usage = log_line.split(',')
         # Convert the Linux epoch to datetime object.
-        time_stamp = np.datetime64(datetime.datetime.fromtimestamp(int(usage[0])).isoformat())
+        time_stamp = datetime.datetime.fromtimestamp(int(usage[0]))
         threads = usage[1]
         cpu = usage[2]
         vmsize = usage[3]
@@ -169,8 +173,7 @@ def create_plot(events, keys, height, width, event_interval, no_legend, save_nam
             cpu_timestamps.append(cpu_events[i].time_stamp)
             cpu_utilization.append(cpu_events[i].cpu)
         ax.plot(cpu_timestamps, cpu_utilization, label='CPU Utilization')
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%D-%H:%M:%S'))
-    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=event_interval))
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(event_interval))
     ax.xaxis.get_ticklocs(minor=True)
     plt.minorticks_on()
     for label in ax.get_xticklabels(which='major'):
@@ -179,6 +182,32 @@ def create_plot(events, keys, height, width, event_interval, no_legend, save_nam
         plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
     plt.tight_layout()
     plt.savefig(f'{save_name}_{source}_Utilization.png')
+
+
+def shift_gpu_event_times(gpu_events, keys, zero_time):
+    """
+    Shifts the timestamps of the GPU events to be centered around a zero time.
+    :param gpu_events: Dictionary of GPU event objects.
+    :param keys: List of GPUs that the events correspond to.
+    :param zero_time: Timestamp for the time to use as the new zero of the plot.
+    """
+    if isinstance(keys, list):
+        for key in keys:
+            for i in range(len(gpu_events[key][0])):
+                gpu_events[key][0][i] = (gpu_events[key][0][i].timestamp() - zero_time) / 60
+    else:
+        for i in range(len(gpu_events[keys][0])):
+            gpu_events[keys][0][i] = (gpu_events[keys][0][i].timestamp() - zero_time) / 60
+
+
+def shift_cpu_event_times(cpu_events, zero_time):
+    """
+    Shifts the timestamps of the CPU events to be centered around a zero time.
+    :param cpu_events: List of CPU event objects.
+    :param zero_time: Timestamp for the time to use as the new zero of the plot.
+    """
+    for i in range(len(cpu_events)):
+        cpu_events[i].time_stamp = (cpu_events[i].time_stamp.timestamp() - zero_time) / 60
 
 
 def main():
@@ -221,13 +250,18 @@ def main():
 
     # The GPU events are in chronological order but if multiple GPUs where used then that data will be mixed in.
     sorted_events = {}
+    # Get current timestamp in seconds.
+    zero_time = datetime.datetime.today().timestamp()
     for event in events:
         gpu_id = event.gpu_type
         if gpu_id not in sorted_events:
             sorted_events.update({gpu_id: [[], [], [], []]})
         sub_list = sorted_events[gpu_id]
         times = sub_list[0]
-        times.append(event.time_stamp + np.timedelta64(cl_args.offset, 'h'))
+        offset_time = event.time_stamp + datetime.timedelta(hours= cl_args.offset)
+        times.append(offset_time)
+        if offset_time.timestamp() < zero_time:
+            zero_time = offset_time.timestamp()
         gpu_utilization = sub_list[1]
         gpu_utilization.append(event.utilization)
         power_utilization = sub_list[2]
@@ -243,14 +277,18 @@ def main():
             cpu_events = cpu_events + process_cpu_log(cpu_log_file)
             cpu_log_file.close()
         cpu_events = sorted(cpu_events, key=lambda x: x.time_stamp)
+        if zero_time < cpu_events[0].time_stamp.timestamp():
+            zero_time = cpu_events[0].time_stamp.timestamp()
+        shift_cpu_event_times(cpu_events, zero_time)
     else:
         cpu_events = None
+    shift_gpu_event_times(sorted_events, event_key_list, zero_time)
     if cl_args.split is True:
         for i in range(len(event_key_list)):
             file_name = f"{save_name}_{i}"
             # Plot percent GPU utilization.
             plot_name = f"{i}_GPU Utilization"
-            xlabel = "Time"
+            xlabel = "Run Time (Minutes)"
             ylabel = "Percent GPU Utilization"
             source = "GPU"
             create_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
@@ -270,7 +308,7 @@ def main():
     else:
         # Plot percent GPU utilization.
         plot_name = "GPU Utilization"
-        xlabel = "Time"
+        xlabel = "Run Time (Minutes)"
         ylabel = "Percent GPU Utilization"
         source = "GPU"
         create_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
