@@ -23,6 +23,9 @@ The example files are generated with the following command:
 python3 utilization_plot.py ./example/se3-transformer-job-rtx2080-jvdgz-gpustat.log -i 17
 ```
 ### Changelog
+2023/05/08
+- Updated the script to display the total runtime of the benchmark on the X axis of the generated plots.
+
 2023/05/05
 - Added a time offest flag to get GPU time events and CPU time events to align.
 
