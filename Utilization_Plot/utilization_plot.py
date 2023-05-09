@@ -135,7 +135,7 @@ def process_cpu_log(logfile):
 
 
 def create_plot(events, keys, height, width, event_interval, no_legend, save_name, plot_title, x_label, y_label,
-                source, cpu_events):
+                source, cpu_events, sub_plot_flag):
     """
     Creates a plot from a dictionary of GPU events with a list of GPUs that the events correspond to.
     :param events: Dictionary of GPU events.
@@ -150,6 +150,7 @@ def create_plot(events, keys, height, width, event_interval, no_legend, save_nam
     :param y_label: Label for the y-axis.
     :param source:  What to generate the plot for. (GPU, POWER, or VRAM) Will default to VRAM.
     :param cpu_events: List of CPU utilization events.
+    :param sub_plot_flag: Boolean used to determine if utilization polt is to be split into subplots.
     """
     if source == "GPU":
         s = 1
@@ -157,30 +158,58 @@ def create_plot(events, keys, height, width, event_interval, no_legend, save_nam
         s = 2
     else:
         s = 3
-    fig, ax = plt.subplots(figsize=(width, height))
-    plt.ylabel(y_label)
-    plt.xlabel(x_label)
-    plt.title(plot_title)
+    if sub_plot_flag is True:
+        fig, axs = plt.subplots(2, figsize=(width, height))
+    else:
+        fig, axs = plt.subplots(figsize=(width, height))
+    #plt.ylabel(y_label)
+    #plt.xlabel(x_label)
+    #plt.title(plot_title)
     if isinstance(keys, list):
         for item in keys:
-            ax.plot(events[item][0], events[item][s], label=item)
+            if sub_plot_flag is True:
+                axs[0].plot(events[item][0], events[item][s], label=item)
+                axs[0].set_title(f'GPU {plot_title}')
+            else:
+                axs.plot(events[item][0], events[item][s], label=item)
     else:
-        ax.plot(events[keys][0], events[keys][s], label=keys)
+        if sub_plot_flag is True:
+            axs[0].plot(events[keys][0], events[keys][s], label=keys)
+            axs[0].set_title(f'GPU {plot_title}')
+        else:
+            axs.plot(events[keys][0], events[keys][s], label=keys)
     if cpu_events is not None and source == "GPU":
         cpu_timestamps = []
         cpu_utilization = []
         for i in range(len(cpu_events)):
             cpu_timestamps.append(cpu_events[i].time_stamp)
             cpu_utilization.append(cpu_events[i].cpu)
-        ax.plot(cpu_timestamps, cpu_utilization, label='CPU Utilization')
-    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(event_interval))
-    ax.xaxis.get_ticklocs(minor=True)
-    plt.minorticks_on()
-    for label in ax.get_xticklabels(which='major'):
-        label.set(rotation=45, horizontalalignment='right')
-    if no_legend is False:
-        plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+        if sub_plot_flag is True:
+            axs[1].plot(cpu_timestamps, cpu_utilization, label='CPU Utilization')
+            axs[1].set_title(f'CPU {plot_title}')
+        else:
+            axs.plot(cpu_timestamps, cpu_utilization, label='CPU Utilization')
+    if sub_plot_flag is True:
+        for ax in axs:
+            ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(event_interval))
+            ax.xaxis.get_ticklocs(minor=True)
+            ax.set(xlabel=x_label, ylabel=y_label)
+            for label in ax.get_xticklabels(which='major'):
+                label.set(rotation=45, horizontalalignment='right')
+            if no_legend is False:
+                ax.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+    else:
+        plt.ylabel(y_label)
+        plt.xlabel(x_label)
+        plt.title(plot_title)
+        axs.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(event_interval))
+        axs.xaxis.get_ticklocs(minor=True)
+        for label in axs.get_xticklabels(which='major'):
+            label.set(rotation=45, horizontalalignment='right')
+        if no_legend is False:
+            axs.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
     plt.tight_layout()
+    plt.minorticks_on()
     plt.savefig(f'{save_name}_{source}_Utilization.png')
 
 
@@ -226,6 +255,7 @@ def main():
     cl_parser.add_argument('-n', '--no-legend', action='store_true', help='Remove the legend for generated plots.')
     cl_parser.add_argument('-r', '--rename', type=str, help='Base file name to rename generated plots to.')
     cl_parser.add_argument('-s', '--split', action='store_true', help='Split multiple GPUs out into separate plots.')
+    cl_parser.add_argument('-p', '--sub-plot', action='store_true', help='Display GPU and CPU utilization as subplots.')
     cl_parser.add_argument('-o', '--offset', type=int, default=0, help='Time in hours to offset the GPU timing.')
     cl_parser.add_argument('--cpu-files', nargs='+', help='List of memprof.csv files. '
                                                           'Ex) memprof-42.csv memprof-1138.csv...')
@@ -287,44 +317,44 @@ def main():
         for i in range(len(event_key_list)):
             file_name = f"{save_name}_{i}"
             # Plot percent GPU utilization.
-            plot_name = f"{i}_GPU Utilization"
+            plot_name = f"{i}_GPU_Utilization"
             xlabel = "Run Time (Minutes)"
-            ylabel = "Percent GPU Utilization"
+            ylabel = "Percent Utilization"
             source = "GPU"
             create_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
-                        plot_name, xlabel, ylabel, source, cpu_events)
+                        plot_name, xlabel, ylabel, source, cpu_events, cl_args.sub_plot)
             # Plot power utilization.
             plot_name = f"{i}_Power Utilization"
             ylabel = f"{i}_GPU Power Utilization"
             source = "POWER"
             create_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
-                        plot_name, xlabel, ylabel, source, cpu_events)
+                        plot_name, xlabel, ylabel, source, cpu_events, False)
             # Plot VRAM utilization.
             plot_name = f"{i}_VRAM Utilization"
             ylabel = f"{i}_VRAM Utilization"
             source = "VRAM"
             create_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
-                        plot_name, xlabel, ylabel, source, cpu_events)
+                        plot_name, xlabel, ylabel, source, cpu_events, False)
     else:
         # Plot percent GPU utilization.
         plot_name = "GPU Utilization"
         xlabel = "Run Time (Minutes)"
-        ylabel = "Percent GPU Utilization"
+        ylabel = "Percent Utilization"
         source = "GPU"
         create_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
-                    plot_name, xlabel, ylabel, source, cpu_events)
+                    plot_name, xlabel, ylabel, source, cpu_events, cl_args.sub_plot)
         # Plot power utilization.
         plot_name = "GPU Power Utilization"
         ylabel = "GPU Power Utilization"
         source = "POWER"
         create_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
-                    plot_name, xlabel, ylabel, source, cpu_events)
+                    plot_name, xlabel, ylabel, source, cpu_events, False)
         # Plot VRAM utilization.
         plot_name = "VRAM Utilization"
         ylabel = "VRAM Utilization"
         source = "VRAM"
         create_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
-                    plot_name, xlabel, ylabel, source, cpu_events)
+                    plot_name, xlabel, ylabel, source, cpu_events, False)
 
 
 if __name__ == "__main__":

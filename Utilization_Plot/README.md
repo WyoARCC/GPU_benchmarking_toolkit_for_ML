@@ -20,9 +20,13 @@ This will generate the three utilization graphs in the same directory as the fil
 
 The example files are generated with the following command:
 ```
-python3 utilization_plot.py ./example/se3-transformer-job-rtx2080-jvdgz-gpustat.log -i 17
+python3 utilization_plot.py ./example/se3-transformer-job-rtx2080-jvdgz-gpustat.log -i 25
 ```
 ### Changelog
+2023/05/09
+- Updated the script to allow splitting of the GPU and CPU utilization to subplots in same figure.
+- Recreated the plots in [example](https://github.com/WyoARCC/GPU_benchmarking_toolkit_for_ML/tree/main/Utilization_Plot/example) with latest version of the script.
+ 
 2023/05/08
 - Updated the script to display the total runtime of the benchmark on the X axis of the generated plots.
 
