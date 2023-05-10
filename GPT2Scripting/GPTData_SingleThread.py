@@ -23,7 +23,7 @@ class GPTData(Dataset):
             except:
                 break
         # Don't access the "text" label
-        self.tmpList = self.tmpList[:100000]  # change back to :-1
+        self.tmpList = self.tmpList[:-1]  # change back to :-1
 
         self.tmpList_encoded = []
         for batch_idx in tqdm(range(0, len(self.tmpList), 64), desc='Tokenizing...'):
