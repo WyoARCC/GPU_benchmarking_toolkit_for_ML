@@ -6,22 +6,21 @@ import datetime
 
 
 class cpu_usage_event:
-    """
-    Object that stores the CPU utilization information for a particular point in time.
+    """	
+    Object that stores the CPU utilization information for a particular point in time.	
     """
     def __init__(self, time_stamp, threads, cpu, vmsize, vmrss, rchar, wchar):
         self.time_stamp = time_stamp
-        self.threads = threads
+        self.threads = float(threads)
         self.cpu = float(cpu)
-        self.vmsize = vmsize
-        self.vmrss = vmrss
-        self.rchar = rchar
-        self.wchar = wchar
-
+        self.vmsize = float(vmsize)
+        self.vmrss = float(vmrss)
+        self.rchar = float(rchar)
+        self.wchar = float(wchar)
 
 class gpu_usage_event:
-    """
-    Object that stores the information from a line in GPU stat.
+    """	
+    Object that stores the information from a line in GPU stat.	
     """
     def __init__(self, node, time_stamp, driver, gpu_type, temp, fan_usage, utilization, encoding, decoding,
                  power_use, power_max, ram_use, ram_max):
@@ -41,10 +40,10 @@ class gpu_usage_event:
 
 
 def get_month_number(month_in):
-    """
-    Reads an abbreviated string representation of a month and returns an int representation of the month.
-    :param month_in: String, Three letter representation of the month.
-    :return: Int, Number representation of the month.
+    """	
+    Reads an abbreviated string representation of a month and returns an int representation of the month.	
+    :param month_in: String, Three letter representation of the month.	
+    :return: Int, Number representation of the month.	
     """
     if month_in == "Jan":
         return 1
@@ -75,10 +74,10 @@ def get_month_number(month_in):
 
 
 def process_gpu_log(logfile):
-    """
-    Takes in an open dump of gpustat constructs a list of gpu_usage_events.
-    :param logfile: Open text file.
-    :return: List of gpu_usage_events.
+    """	
+    Takes in an open dump of gpustat constructs a list of gpu_usage_events.	
+    :param logfile: Open text file.	
+    :return: List of gpu_usage_events.	
     """
     events = []
     header = None
@@ -111,10 +110,10 @@ def process_gpu_log(logfile):
 
 
 def process_cpu_log(logfile):
-    """
-    Reads the files produced by memprof and constructs a list of cpu_usage_events.
-    :param logfile: List of memprof log files.
-    :return: List of cpu_usage_events.
+    """	
+    Reads the files produced by memprof and constructs a list of cpu_usage_events.	
+    :param logfile: List of memprof log files.	
+    :return: List of cpu_usage_events.	
     """
     events = []
     # Skip the header in the CSV file.
@@ -134,8 +133,8 @@ def process_cpu_log(logfile):
     return events
 
 
-def create_plot(events, keys, height, width, event_interval, no_legend, save_name, plot_title, x_label, y_label,
-                source, cpu_events, sub_plot_flag):
+def create_gpu_plot(events, keys, height, width, event_interval, no_legend, save_name, plot_title, x_label, y_label,
+                    source, cpu_events, sub_plot_flag):
     """
     Creates a plot from a dictionary of GPU events with a list of GPUs that the events correspond to.
     :param events: Dictionary of GPU events.
@@ -150,8 +149,8 @@ def create_plot(events, keys, height, width, event_interval, no_legend, save_nam
     :param y_label: Label for the y-axis.
     :param source:  What to generate the plot for. (GPU, POWER, or VRAM) Will default to VRAM.
     :param cpu_events: List of CPU utilization events.
-    :param sub_plot_flag: Boolean used to determine if utilization polt is to be split into subplots.
-    """
+        :param sub_plot_flag: Boolean used to determine if utilization polt is to be split into subplots.
+        """
     if source == "GPU":
         s = 1
     elif source == "POWER":
@@ -162,9 +161,6 @@ def create_plot(events, keys, height, width, event_interval, no_legend, save_nam
         fig, axs = plt.subplots(2, figsize=(width, height))
     else:
         fig, axs = plt.subplots(figsize=(width, height))
-    #plt.ylabel(y_label)
-    #plt.xlabel(x_label)
-    #plt.title(plot_title)
     if isinstance(keys, list):
         for item in keys:
             if sub_plot_flag is True:
@@ -211,6 +207,108 @@ def create_plot(events, keys, height, width, event_interval, no_legend, save_nam
     plt.tight_layout()
     plt.minorticks_on()
     plt.savefig(f'{save_name}_{source}_Utilization.png')
+
+
+def create_cpu_plot(cpu_events, height, width, event_interval, no_legend, save_name):
+    """
+    Creates individual plots for the information pulled from the memplot files.
+    :param cpu_events: List of cpu events.
+    :param height: The height of the generated plot.
+    :param width: The width of the generated plot.
+    :param event_interval: The interval spacing in the x-axis in minutes.
+    :param no_legend: Boolean flag for displaying or not displaying the legend for the plot.
+    :param save_name: Base name to save plot to.
+    """
+    fig, axs = plt.subplots(figsize=(width, height))
+    cpu_timestamps = []
+    threads = []
+    cpu_utilization = []
+    vmsize = []
+    vmrss = []
+    rchar = []
+    wchar = []
+    for i in range(len(cpu_events)):
+        cpu_timestamps.append(cpu_events[i].time_stamp)
+        threads.append(cpu_events[i].threads)
+        cpu_utilization.append(cpu_events[i].cpu)
+        vmsize.append(cpu_events[i].vmsize)
+        vmrss.append(cpu_events[i].vmrss)
+        rchar.append(cpu_events[i].rchar)
+        wchar.append(cpu_events[i].wchar)
+
+    # Create CPU Utilization Plot
+    ylabel = "Percent Utilization"
+    xlabel = "Run Time (Minutes)"
+    title = "CPU Utilization"
+    axs.plot(cpu_timestamps, cpu_utilization, label="CPU Utilization")
+    plt.ylabel(ylabel)
+    plt.xlabel(xlabel)
+    plt.title(title)
+    axs.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(event_interval))
+    axs.xaxis.get_ticklocs(minor=True)
+    for label in axs.get_xticklabels(which='major'):
+        label.set(rotation=45, horizontalalignment='right')
+    if no_legend is False:
+        axs.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+    plt.tight_layout()
+    plt.minorticks_on()
+    plt.savefig(f'{save_name}_CPU_Utilization.png')
+
+    # Create Thread Utilization Plot
+    fig, axs = plt.subplots(figsize=(width, height))
+    ylabel = "Threads"
+    title = "Thread Utilization"
+    axs.plot(cpu_timestamps, threads, label="Thread Count")
+    plt.ylabel(ylabel)
+    plt.xlabel(xlabel)
+    plt.title(title)
+    axs.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(event_interval))
+    axs.xaxis.get_ticklocs(minor=True)
+    for label in axs.get_xticklabels(which='major'):
+        label.set(rotation=45, horizontalalignment='right')
+    if no_legend is False:
+        axs.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+    plt.tight_layout()
+    plt.minorticks_on()
+    plt.savefig(f'{save_name}_THREAD_Utilization.png')
+
+    # Create IO Utilization Plot
+    fig, axs = plt.subplots(figsize=(width, height))
+    ylabel = "I/O Utilization (Bytes/s)"
+    title = "I/O Utilization"
+    axs.plot(cpu_timestamps, rchar, label='Data Read')
+    axs.plot(cpu_timestamps, wchar, label='Data Written')
+    plt.ylabel(ylabel)
+    plt.xlabel(xlabel)
+    plt.title(title)
+    axs.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(event_interval))
+    axs.xaxis.get_ticklocs(minor=True)
+    for label in axs.get_xticklabels(which='major'):
+        label.set(rotation=45, horizontalalignment='right')
+    if no_legend is False:
+        axs.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+    plt.tight_layout()
+    plt.minorticks_on()
+    plt.savefig(f'{save_name}_IO_Utilization.png')
+
+    # Create RAM Utilization Plot
+    fig, axs = plt.subplots(figsize=(width, height))
+    ylabel = "RAM Utilization (kB)"
+    title = "RAM Utilization"
+    axs.plot(cpu_timestamps, vmsize, label='VmSize')
+    axs.plot(cpu_timestamps, vmrss, label='VmRSS')
+    plt.ylabel(ylabel)
+    plt.xlabel(xlabel)
+    plt.title(title)
+    axs.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(event_interval))
+    axs.xaxis.get_ticklocs(minor=True)
+    for label in axs.get_xticklabels(which='major'):
+        label.set(rotation=45, horizontalalignment='right')
+    if no_legend is False:
+        axs.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+    plt.tight_layout()
+    plt.minorticks_on()
+    plt.savefig(f'{save_name}_RAM_Utilization.png')
 
 
 def shift_gpu_event_times(gpu_events, keys, zero_time):
@@ -277,7 +375,6 @@ def main():
         sys.exit(-1)
     events = process_gpu_log(logfile_handle)
     logfile_handle.close()
-
     # The GPU events are in chronological order but if multiple GPUs where used then that data will be mixed in.
     sorted_events = {}
     # Get current timestamp in seconds.
@@ -288,7 +385,7 @@ def main():
             sorted_events.update({gpu_id: [[], [], [], []]})
         sub_list = sorted_events[gpu_id]
         times = sub_list[0]
-        offset_time = event.time_stamp + datetime.timedelta(hours= cl_args.offset)
+        offset_time = event.time_stamp + datetime.timedelta(hours=cl_args.offset)
         times.append(offset_time)
         if offset_time.timestamp() < zero_time:
             zero_time = offset_time.timestamp()
@@ -321,40 +418,42 @@ def main():
             xlabel = "Run Time (Minutes)"
             ylabel = "Percent Utilization"
             source = "GPU"
-            create_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
-                        plot_name, xlabel, ylabel, source, cpu_events, cl_args.sub_plot)
+            create_gpu_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
+                            plot_name, xlabel, ylabel, source, cpu_events, cl_args.sub_plot)
             # Plot power utilization.
             plot_name = f"{i}_Power Utilization"
-            ylabel = f"{i}_GPU Power Utilization"
+            ylabel = f"GPU Power Utilization"
             source = "POWER"
-            create_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
-                        plot_name, xlabel, ylabel, source, cpu_events, False)
+            create_gpu_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
+                            plot_name, xlabel, ylabel, source, cpu_events, False)
             # Plot VRAM utilization.
             plot_name = f"{i}_VRAM Utilization"
-            ylabel = f"{i}_VRAM Utilization"
+            ylabel = f"VRAM Utilization"
             source = "VRAM"
-            create_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
-                        plot_name, xlabel, ylabel, source, cpu_events, False)
+            create_gpu_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
+                            plot_name, xlabel, ylabel, source, cpu_events, False)
     else:
         # Plot percent GPU utilization.
         plot_name = "GPU Utilization"
         xlabel = "Run Time (Minutes)"
         ylabel = "Percent Utilization"
         source = "GPU"
-        create_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
-                    plot_name, xlabel, ylabel, source, cpu_events, cl_args.sub_plot)
+        create_gpu_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
+                        plot_name, xlabel, ylabel, source, cpu_events, cl_args.sub_plot)
         # Plot power utilization.
         plot_name = "GPU Power Utilization"
         ylabel = "GPU Power Utilization"
         source = "POWER"
-        create_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
-                    plot_name, xlabel, ylabel, source, cpu_events, False)
+        create_gpu_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
+                        plot_name, xlabel, ylabel, source, cpu_events, False)
         # Plot VRAM utilization.
         plot_name = "VRAM Utilization"
         ylabel = "VRAM Utilization"
         source = "VRAM"
-        create_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
-                    plot_name, xlabel, ylabel, source, cpu_events, False)
+        create_gpu_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
+                        plot_name, xlabel, ylabel, source, cpu_events, False)
+    if cpu_files is not None:
+        create_cpu_plot(cpu_events, height, width, event_interval, no_legend, save_name)
 
 
 if __name__ == "__main__":
