@@ -219,10 +219,8 @@ def create_cpu_plot(cpu_events, height, width, event_interval, no_legend, save_n
     :param no_legend: Boolean flag for displaying or not displaying the legend for the plot.
     :param save_name: Base name to save plot to.
     """
-    fig, axs = plt.subplots(figsize=(width, height))
     cpu_timestamps = []
     threads = []
-    cpu_utilization = []
     vmsize = []
     vmrss = []
     rchar = []
@@ -230,32 +228,14 @@ def create_cpu_plot(cpu_events, height, width, event_interval, no_legend, save_n
     for i in range(len(cpu_events)):
         cpu_timestamps.append(cpu_events[i].time_stamp)
         threads.append(cpu_events[i].threads)
-        cpu_utilization.append(cpu_events[i].cpu)
         vmsize.append(cpu_events[i].vmsize)
         vmrss.append(cpu_events[i].vmrss)
         rchar.append(cpu_events[i].rchar)
         wchar.append(cpu_events[i].wchar)
 
-    # Create CPU Utilization Plot
-    ylabel = "Percent Utilization"
-    xlabel = "Run Time (Minutes)"
-    title = "CPU Utilization"
-    axs.plot(cpu_timestamps, cpu_utilization, label="CPU Utilization")
-    plt.ylabel(ylabel)
-    plt.xlabel(xlabel)
-    plt.title(title)
-    axs.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(event_interval))
-    axs.xaxis.get_ticklocs(minor=True)
-    for label in axs.get_xticklabels(which='major'):
-        label.set(rotation=45, horizontalalignment='right')
-    if no_legend is False:
-        axs.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-    plt.tight_layout()
-    plt.minorticks_on()
-    plt.savefig(f'{save_name}_CPU_Utilization.png')
-
     # Create Thread Utilization Plot
     fig, axs = plt.subplots(figsize=(width, height))
+    xlabel = "Run Time (Minutes)"
     ylabel = "Threads"
     title = "Thread Utilization"
     axs.plot(cpu_timestamps, threads, label="Thread Count")
