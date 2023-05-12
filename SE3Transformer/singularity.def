@@ -69,7 +69,7 @@ export OMP_NUM_THREADS=1
 cd /
 mkdir memory_profiler
 cd memory_profiler
-git clone https://github.com/IGBIllinois/memprof
+git clone https://github.com/WyoARCC/memprof
 
 pip uninstall pynvml -y
 pip --no-cache-dir install gpustat

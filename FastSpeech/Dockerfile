@@ -17,7 +17,7 @@ RUN wget --load-cookies /tmp/cookies.txt "https://drive.google.com/uc?id=1c5ZTuT
 WORKDIR /
 RUN mkdir memory_profiler
 WORKDIR /memory_profiler 
-RUN git clone https://github.com/IGBIllinois/memprof
+RUN git clone https://github.com/WyoARCC/memprof
 WORKDIR /
 RUN pip uninstall pynvml -y
 RUN pip --no-cache-dir install pytools==2022.1.12 gpustat

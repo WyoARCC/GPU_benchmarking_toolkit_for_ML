@@ -177,13 +177,13 @@ def prepare_input_sequence(fields, device, symbol_set, text_cleaners,
         assert 'mel' in fields
         assert dataset is not None
         fields['mel'] = [
-            torch.load(Path(dataset, fields['mel'][i])).t() for i in order]
+            torch.load(Path('./', fields['mel'][i])).t() for i in order]
         fields['mel_lens'] = torch.LongTensor([t.size(0) for t in fields['mel']])
 
     if load_pitch:
         assert 'pitch' in fields
         fields['pitch'] = [
-            torch.load(Path(dataset, fields['pitch'][i])) for i in order]
+            torch.load(Path('./', fields['pitch'][i])) for i in order]
         fields['pitch_lens'] = torch.LongTensor([t.size(0) for t in fields['pitch']])
 
     if 'output' in fields:

@@ -28,13 +28,11 @@
 import argparse
 import time
 from pathlib import Path
-
 import torch
 import tqdm
 import dllogger as DLLogger
 from dllogger import StdOutBackend, JSONStreamBackend, Verbosity
 from torch.utils.data import DataLoader
-
 from fastpitch.data_function import TTSCollate, TTSDataset
 
 
@@ -55,6 +53,7 @@ def parse_args(parser):
     parser.add_argument('--log-file', type=str, default='preproc_log.json',
                          help='Filename for logging')
     parser.add_argument('--n-speakers', type=int, default=1)
+    
     # Mel extraction
     parser.add_argument('--max-wav-value', default=32768.0, type=float,
                         help='Maximum audiowave value')
@@ -92,20 +91,19 @@ def main():
     if len(unk_args) > 0:
         raise ValueError(f'Invalid options {unk_args}')
 
-    DLLogger.init(backends=[JSONStreamBackend(Verbosity.DEFAULT, Path(args.dataset_path, args.log_file)),
+    DLLogger.init(backends=[JSONStreamBackend(Verbosity.DEFAULT, Path('./output', args.log_file)),
                             StdOutBackend(Verbosity.VERBOSE)])
     for k, v in vars(args).items():
         DLLogger.log(step="PARAMETER", data={k: v})
     DLLogger.flush()
-
     if args.extract_mels:
-        Path(args.dataset_path, 'mels').mkdir(parents=False, exist_ok=True)
+        Path('./', 'mels').mkdir(parents=False, exist_ok=True)
 
     if args.extract_pitch:
-        Path(args.dataset_path, 'pitch').mkdir(parents=False, exist_ok=True)
+        Path('./', 'pitch').mkdir(parents=False, exist_ok=True)
 
     if args.save_alignment_priors:
-        Path(args.dataset_path, 'alignment_priors').mkdir(parents=False, exist_ok=True)
+        Path('./', 'alignment_priors').mkdir(parents=False, exist_ok=True)
         
     for filelist in args.wav_text_filelists:
 
@@ -160,19 +158,22 @@ def main():
             if args.extract_mels:
                 for j, mel in enumerate(mels):
                     fname = Path(fpaths[j]).with_suffix('.pt').name
-                    fpath = Path(args.dataset_path, 'mels', fname)
+                    fpath = f'./mels/{fname}'
+                    # fpath = Path(args.dataset_path, 'mels', fname)
                     torch.save(mel[:, :mel_lens[j]], fpath)
 
             if args.extract_pitch:
                 for j, p in enumerate(pitch):
                     fname = Path(fpaths[j]).with_suffix('.pt').name
-                    fpath = Path(args.dataset_path, 'pitch', fname)
+                    fpath = f'./pitch/{fname}'
+                    # fpath = Path(args.dataset_path, 'pitch', fname)
                     torch.save(p[:mel_lens[j]], fpath)
 
             if args.save_alignment_priors:
                 for j, prior in enumerate(attn_prior):
                     fname = Path(fpaths[j]).with_suffix('.pt').name
-                    fpath = Path(args.dataset_path, 'alignment_priors', fname)
+                    fpath = f'./alignment_priors/{fname}'
+                    # fpath = Path(args.dataset_path, 'alignment_priors', fname)
                     torch.save(prior[:mel_lens[j], :input_lens[j]], fpath)
 
 

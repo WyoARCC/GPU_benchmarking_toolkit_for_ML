@@ -3,13 +3,13 @@ import os
 from trainer import Trainer, TrainerArgs
 
 from TTS.utils.audio import AudioProcessor
-from TTS.vocoder.configs import HifiganConfig
+from TTS.vocoder.configs import MelganConfig
 from TTS.vocoder.datasets.preprocess import load_wav_data
 from TTS.vocoder.models.gan import GAN
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 
-config = HifiganConfig(
+config = MelganConfig(
     batch_size=32,
     eval_batch_size=16,
     num_loader_workers=2,

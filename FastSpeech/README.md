@@ -10,6 +10,10 @@ Most of the files in this folder are from [Nvidia’s Deep Learning Examples rep
 ## Release notes
 
 ### Changelog
+2023/05/12
+- Updated to use ARCC's fork of [memprof.](https://github.com/WyoARCC/memprof)
+- Updated to use a shared dataset with other TTS benchmarks in this repo.
+
 2023/04/07:
 - Added support for tracking resource utilization using [memprof](https://github.com/IGBIllinois/memprof) and [gpustat](https://github.com/wookayin/gpustat).
 

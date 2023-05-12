@@ -53,7 +53,7 @@ FROM ${FROM_IMAGE_NAME}
 WORKDIR /
 RUN mkdir memory_profiler
 WORKDIR /memory_profiler
-RUN git clone https://github.com/IGBIllinois/memprof
+RUN git clone https://github.com/WyoARCC/memprof
 WORKDIR /workspace/se3-transformer
 
 # copy built DGL and install it

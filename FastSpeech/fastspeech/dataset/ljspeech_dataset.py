@@ -66,7 +66,7 @@ class LJSpeechDataset(Dataset):
 
         # Read metadata file.
         # - column: <name, transcription, normalized_transcription>
-        self.metas = pd.read_csv(os.path.join(root_path, meta_file),
+        self.metas = pd.read_csv(os.path.join(os.getcwd(), meta_file),
                                  sep="|",
                                  header=None,
                                  keep_default_na=False,

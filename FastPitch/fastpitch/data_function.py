@@ -163,6 +163,9 @@ class TTSDataset(torch.utils.data.Dataset):
         self.audiopaths_and_text = load_filepaths_and_text(
             dataset_path, audiopaths_and_text,
             has_speakers=(n_speakers > 1))
+        self.pitch_path = load_filepaths_and_text(
+            './', audiopaths_and_text,
+            has_speakers=(n_speakers > 1))
         self.load_mel_from_disk = load_mel_from_disk
         if not load_mel_from_disk:
             self.max_wav_value = max_wav_value
@@ -288,14 +291,14 @@ class TTSDataset(torch.utils.data.Dataset):
 
     def get_pitch(self, index, mel_len=None):
         audiopath, *fields = self.audiopaths_and_text[index]
-
+        test_audio_path, *test_fields = self.pitch_path[index]
         if self.n_speakers > 1:
             spk = int(fields[-1])
         else:
             spk = 0
 
         if self.load_pitch_from_disk:
-            pitchpath = fields[0]
+            pitchpath = test_fields[0]
             pitch = torch.load(pitchpath)
             if self.pitch_mean is not None:
                 assert self.pitch_std is not None
@@ -303,7 +306,7 @@ class TTSDataset(torch.utils.data.Dataset):
             return pitch
 
         if self.pitch_tmp_dir is not None:
-            fname = Path(audiopath).relative_to(self.dataset_path)
+            fname = Path('./pitch')
             fname_method = fname.with_suffix('.pt')
             cached_fpath = Path(self.pitch_tmp_dir, fname_method)
             if cached_fpath.is_file():
@@ -419,3 +422,4 @@ def batch_to_gpu(batch):
     y = [mel_padded, input_lengths, output_lengths]
     len_x = torch.sum(output_lengths)
     return (x, y, len_x)
+

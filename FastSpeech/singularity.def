@@ -13,7 +13,7 @@ wget --load-cookies /tmp/cookies.txt "https://drive.google.com/uc?id=1c5ZTuT7J08
 cd /
 mkdir memory_profiler
 cd memory_profiler 
-git clone https://github.com/IGBIllinois/memprof
+git clone https://github.com/WyoARCC/memprof
 pip uninstall pynvml -y
 pip --no-cache-dir install gpustat
 %runscript

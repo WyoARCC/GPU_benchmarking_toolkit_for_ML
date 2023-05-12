@@ -1,6 +1,6 @@
 {
-    "run_name": "glow_tts_run",
-    "model": "glow_tts",
+    "run_name": "vits_run",
+    "model": "vits",
     "batch_size": 32,
     "eval_batch_size": 16,
     "num_loader_workers": 2,
@@ -15,6 +15,6 @@
     "print_step": 25,
     "print_eval": true,
     "mixed_precision": false,
-    "output_path": "./benchmark_glow_tts/",
+    "output_path": "./vits_run",
     "datasets":[{"formatter": "ljspeech", "meta_file_train":"metadata.csv", "path": "../../LJSpeech-1.1/"}]
 }

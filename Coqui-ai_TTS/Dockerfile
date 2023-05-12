@@ -1,12 +1,12 @@
 FROM nvidia/cuda:11.7.1-cudnn8-runtime-rockylinux8
 RUN dnf module install python38 -y
 RUN dnf update -y && \
-    dnf install -y  cuda-toolkit-11-7 make git cmake python38-devel libsndfile lapack pigz
+    dnf install -y  cuda-toolkit-11-7 make git cmake python38-devel libsndfile lapack pigz wget bzip2
 
 WORKDIR /
 RUN mkdir memory_profiler
 WORKDIR /memory_profiler
-RUN git clone https://github.com/IGBIllinois/memprof
+RUN git clone https://github.com/WyoARCC/memprof
 WORKDIR /
 COPY . /workspace/tts
 WORKDIR /workspace/tts
