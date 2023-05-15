@@ -10,6 +10,10 @@ Most of the files in this folder are from [coqui-ai's TTS repository](https://gi
 ## Release notes
 
 ### Changelog
+2023/05/15
+- Added additional headings to run_test.sh to help with searching through the output.
+- Updated run_test.sh to stop incase of a step failing.
+ 
 2023/05/12
 - Updated to use ARCC's fork of [memprof.](https://github.com/WyoARCC/memprof)
 - Added additional training models.

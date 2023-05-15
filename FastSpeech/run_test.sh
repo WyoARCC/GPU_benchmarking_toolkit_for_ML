@@ -29,6 +29,11 @@ time memprof.sh bash scripts/prepare_dataset.sh &
 PID=$!
 echo "PID: $PID"
 wait $PID
+RET_CODE=$?
+if [ $RET_CODE != 0 ]
+then
+   exit $RET_CODE
+fi
 
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
@@ -40,7 +45,11 @@ time memprof.sh python3 fastspeech/dataset/ljspeech_dataset.py --dataset_path=".
 PID=$!
 echo "PID: $PID"
 wait $PID
-
+RET_CODE=$?
+if [ $RET_CODE != 0 ]
+then
+   exit $RET_CODE
+fi
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Preprocess Alignment!"
@@ -51,7 +60,11 @@ time memprof.sh python3 fastspeech/align_tacotron2.py --dataset_path="../../LJSp
 PID=$!
 echo "PID: $PID"
 wait $PID
-
+RET_CODE=$?
+if [ $RET_CODE != 0 ]
+then
+   exit $RET_CODE
+fi
 export CUDA_VISIBLE_DEVICES=0
 
 
@@ -65,7 +78,11 @@ time memprof.sh python3 fastspeech/train.py --dataset_path="../../LJSpeech-1.1" 
 PID=$!
 echo "PID: $PID"
 wait $PID
-
+RET_CODE=$?
+if [ $RET_CODE != 0 ]
+then
+   exit $RET_CODE
+fi
 
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
@@ -77,4 +94,10 @@ time memprof.sh python3 generate.py --waveglow_path=nvidia_waveglow256pyt_fp16.p
 PID=$!
 echo "PID: $PID"
 wait $PID
-
+RET_CODE=$?
+echo ""
+echo "---------------------------------------------------------------------------------------------------------------------------------------------"
+echo "Script Finished!"
+echo "---------------------------------------------------------------------------------------------------------------------------------------------"
+echo ""
+exit $RET_CODE

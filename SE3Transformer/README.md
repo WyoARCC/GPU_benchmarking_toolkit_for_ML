@@ -11,13 +11,17 @@ For the specifics of how this implementation of the SE(3)-Transformer model work
 ## Release notes
 
 ### Changelog
+2023/05/15
+- Added additional headings to run_test.sh to help with searching through the output.
+- Updated run_test.sh to stop incase of a step failing.
+
 2023/05/12
 - Updated to use ARCC's fork of [memprof.](https://github.com/WyoARCC/memprof)
 
-2023/04/07:
+2023/04/07
 - Added support for tracking resource utilization using [memprof](https://github.com/IGBIllinois/memprof) and [gpustat](https://github.com/wookayin/gpustat).
 
-2023/03/27:
+2023/03/27
 - Initial commit
 
 ### Known issues
