@@ -3,6 +3,7 @@ import matplotlib.ticker
 import sys
 import argparse
 import datetime
+import os
 
 
 class cpu_usage_event:
@@ -337,6 +338,7 @@ def main():
     cl_parser.add_argument('-o', '--offset', type=int, default=0, help='Time in hours to offset the GPU timing.')
     cl_parser.add_argument('--cpu-files', nargs='+', help='List of memprof.csv files. '
                                                           'Ex) memprof-42.csv memprof-1138.csv...')
+    cl_parser.add_argument('-d', '--memprof-dir', type=str, help='Directory containing the CSV files created by memprof.')
     cl_args = cl_parser.parse_args()
     logfile_name = cl_args.filename
     height = cl_args.height
@@ -344,6 +346,7 @@ def main():
     no_legend = cl_args.no_legend
     event_interval = cl_args.interval
     cpu_files = cl_args.cpu_files
+    memprof_dir = cl_args.memprof_dir
     if cl_args.rename is not None:
         save_name = cl_args.rename
     else:
@@ -377,7 +380,7 @@ def main():
         vram_utilization.append(event.ram_use)
         sorted_events[gpu_id] = sub_list
     event_key_list = sorted(sorted_events)
-    if cpu_files is not None:
+    if cpu_files is not None and memprof_dir is None:
         cpu_events = []
         for file in cpu_files:
             cpu_log_file = open(file, 'r')
@@ -387,6 +390,23 @@ def main():
         if zero_time < cpu_events[0].time_stamp.timestamp():
             zero_time = cpu_events[0].time_stamp.timestamp()
         shift_cpu_event_times(cpu_events, zero_time)
+    elif cpu_files is None and memprof_dir is not None:
+        cpu_events = []
+        memprof_file = os.listdir(memprof_dir)
+        for file in memprof_file:
+            full_file_name = os.path.join(memprof_dir, file)
+            if not full_file_name.endswith(".csv"):
+                continue
+            cpu_log_file = open(full_file_name, 'r')
+            cpu_events = cpu_events + process_cpu_log(cpu_log_file)
+            cpu_log_file.close()
+        cpu_events = sorted(cpu_events, key=lambda x: x.time_stamp)
+        if zero_time < cpu_events[0].time_stamp.timestamp():
+            zero_time = cpu_events[0].time_stamp.timestamp()
+        shift_cpu_event_times(cpu_events, zero_time)
+    elif cpu_files is not None and memprof_dir is not None:
+        print("Please use either the cpu-files flag or memprof-dir flag. Not both.")
+        sys.exit(1)
     else:
         cpu_events = None
     shift_gpu_event_times(sorted_events, event_key_list, zero_time)
@@ -394,7 +414,7 @@ def main():
         for i in range(len(event_key_list)):
             file_name = f"{save_name}_{i}"
             # Plot percent GPU utilization.
-            plot_name = f"{i}_GPU_Utilization"
+            plot_name = f"{i}_Utilization"
             xlabel = "Run Time (Minutes)"
             ylabel = "Percent Utilization"
             source = "GPU"
@@ -414,7 +434,7 @@ def main():
                             plot_name, xlabel, ylabel, source, cpu_events, False)
     else:
         # Plot percent GPU utilization.
-        plot_name = "GPU Utilization"
+        plot_name = "Utilization"
         xlabel = "Run Time (Minutes)"
         ylabel = "Percent Utilization"
         source = "GPU"
@@ -432,7 +452,7 @@ def main():
         source = "VRAM"
         create_gpu_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
                         plot_name, xlabel, ylabel, source, cpu_events, False)
-    if cpu_files is not None:
+    if cpu_files is not None or memprof_dir is not None:
         create_cpu_plot(cpu_events, height, width, event_interval, no_legend, save_name)
 
 

@@ -15,7 +15,7 @@ WORKING_DIR=$(pwd)
 cd '../..'
 echo "The missing dataset will be retrived."
 wget 'http://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2'
-tar jxvf 'LJSpeech-1.1.tar.bz2'
+tar -jxvf 'LJSpeech-1.1.tar.bz2'
 cd "$WORKING_DIR"
 fi 
 
