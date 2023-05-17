@@ -422,13 +422,13 @@ def main():
                             plot_name, xlabel, ylabel, source, cpu_events, cl_args.sub_plot)
             # Plot power utilization.
             plot_name = f"{i}_Power Utilization"
-            ylabel = f"GPU Power Utilization"
+            ylabel = f"GPU Power Utilization (Watts)"
             source = "POWER"
             create_gpu_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
                             plot_name, xlabel, ylabel, source, cpu_events, False)
             # Plot VRAM utilization.
             plot_name = f"{i}_VRAM Utilization"
-            ylabel = f"VRAM Utilization"
+            ylabel = f"VRAM Utilization (MB)"
             source = "VRAM"
             create_gpu_plot(sorted_events, event_key_list[i], height, width, event_interval, no_legend, file_name,
                             plot_name, xlabel, ylabel, source, cpu_events, False)
@@ -442,13 +442,13 @@ def main():
                         plot_name, xlabel, ylabel, source, cpu_events, cl_args.sub_plot)
         # Plot power utilization.
         plot_name = "GPU Power Utilization"
-        ylabel = "GPU Power Utilization"
+        ylabel = "GPU Power Utilization (Watts)"
         source = "POWER"
         create_gpu_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
                         plot_name, xlabel, ylabel, source, cpu_events, False)
         # Plot VRAM utilization.
         plot_name = "VRAM Utilization"
-        ylabel = "VRAM Utilization"
+        ylabel = "VRAM Utilization (MB)"
         source = "VRAM"
         create_gpu_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
                         plot_name, xlabel, ylabel, source, cpu_events, False)

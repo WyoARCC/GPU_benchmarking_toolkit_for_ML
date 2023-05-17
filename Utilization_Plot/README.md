@@ -36,6 +36,10 @@ gpustat -a -i 60 > gpustat.log 2>&1 &
 ```
 This call will check the gpu utilization every 60 seconds and send the output to a file called gpustat.log in the same directory that it is called from. After launching gpustat in this manner the commands that are to be profiled can be launched in the same bash script.
 ### Changelog
+2023/05/17
+- Added missing units to power and VRAM utilization plots.
+- Regenerated the example files to include this information.
+
 2023/05/16
 - Added flag to read a directory for [memprof](https://github.com/WyoARCC/memprof) generated files to plot.
 - Added new example that demonstrates multi-GPU capabilities.
