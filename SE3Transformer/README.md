@@ -11,6 +11,9 @@ For the specifics of how this implementation of the SE(3)-Transformer model work
 ## Release notes
 
 ### Changelog
+2023/05/17
+- Removed stops in run_test.sh
+
 2023/05/15
 - Added additional headings to run_test.sh to help with searching through the output.
 - Updated run_test.sh to stop incase of a step failing.

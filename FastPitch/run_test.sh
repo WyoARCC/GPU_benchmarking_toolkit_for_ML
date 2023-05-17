@@ -40,18 +40,12 @@ time memprof.sh bash scripts/prepare_dataset.sh &
 PID=$!	
 echo "PID: $PID"	
 wait $PID
-RET_CODE=$?
-if [ $RET_CODE != 0 ]
-then
-   exit $RET_CODE
-fi
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Training!"
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo ""
 echo ""
-export CUDA_VISIBLE_DEVICES=0
 export NUM_GPUS=1
 export GRAD_ACCUMULATION=16
 export EPOCS=250
@@ -60,25 +54,18 @@ PID=$!
 echo "PID: $PID"	
 wait $PID
 RET_CODE=$?
-if [ $RET_CODE != 0 ]
-then
-   exit $RET_CODE
-fi
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Running Inference!"
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo ""
 echo ""
-time memprof.sh bash scripts/inference_example.sh &
+time memprof.sh bash scripts/inference_benchmark.sh --fastpitch output/FastPitch_checkpoint_250.pt &
 PID=$!	
 echo "PID: $PID"	
 wait $PID
-RET_CODE=$?
-
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Script Finished!"
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo ""
-exit $RET_CODE

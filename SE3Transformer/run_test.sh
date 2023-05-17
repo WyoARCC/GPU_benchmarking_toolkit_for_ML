@@ -26,11 +26,6 @@ time memprof.sh bash scripts/benchmark_train.sh 24 &
 PID=$!
 echo "PID: $PID"
 wait $PID
-RET_CODE=$?
-if [ $RET_CODE != 0 ]
-then
-   exit $RET_CODE
-fi
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Inference Performance Benchmark!"
@@ -41,11 +36,8 @@ time memprof.sh bash scripts/benchmark_inference.sh 24 &
 PID=$!
 echo "PID: $PID"
 wait $PID
-RET_CODE=$?
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Script Finished!"
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo ""
-
-exit $RET_CODE

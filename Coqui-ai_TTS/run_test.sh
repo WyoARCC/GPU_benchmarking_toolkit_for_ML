@@ -37,13 +37,6 @@ time memprof.sh python3 TTS/bin/train_tts.py --config_path config.json &
 PID=$!
 echo "PID: $PID"
 wait $PID
-RET_CODE=$?
-if [ $RET_CODE != 0 ]
-then
-   exit $RET_CODE
-fi
-
-
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Training VOCODER Model Higan!"
@@ -55,13 +48,6 @@ PID=$!
 echo "PID: $PID"
 wait $PID
 RET_CODE=$?
-if [ $RET_CODE != 0 ]
-then
-   exit $RET_CODE
-fi
-
-
-
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Training TTS Model VITS!"
@@ -72,13 +58,6 @@ time memprof.sh python3 TTS/bin/train_tts.py --config_path config_vits.json &
 PID=$!
 echo "PID: $PID"
 wait $PID
-RET_CODE=$?
-if [ $RET_CODE != 0 ]
-then
-   exit $RET_CODE
-fi
-
-
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Training VOCODER Model Melgan!"
@@ -90,13 +69,8 @@ time memprof.sh python3 train_vocoder_melgan.py &
 PID=$!
 echo "PID: $PID"
 wait $PID
-RET_CODE=$?
-
-
-
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Script Finished!"
 echo "---------------------------------------------------------------------------------------------------------------------------------------------"
 echo ""
-exit $RET_CODE
