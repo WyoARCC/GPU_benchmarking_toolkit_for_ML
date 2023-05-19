@@ -6,7 +6,8 @@ from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 import os
 import csv
-from GPTData_SingleThread import GPTData
+from GPTData import GPTData
+from GPTData_SingleThread import GPTData_SingleThread
 from DataSetsForLLM import LoadWikiText
 from tqdm import tqdm
 from torch.optim import Adam, lr_scheduler
@@ -25,23 +26,28 @@ criterion = CrossEntropyLoss()
 
 
 def multi_core_GPTDATA(filename: str, tokenizer_mc):
-    #print("error print if >1")
-    temp_set = GPTData(filename, tokenizer_mc)
+    # print("error print if >1")
+    temp_set = GPTData(path=filename, tokenizer_pp=tokenizer_mc, batch_size=32, num_workers=5)
+    temp_set.load_data()
     return temp_set
 
 
+def single_core_GPTDATA(filename: str, tokenizer_sc):
+    tmp_set = GPTData_SingleThread(path=filename, tokenizer_pp=tokenizer_sc)
+    return tmp_set
+
+
 # Have the model conduct Inferences
-def infer(inp):
-    input_formatted = "<bos>" + inp + "<eos>"
-    test = tokenizer(input_formatted)
-    output = model.generate(**test)
-    return tokenizer.decode(output[0])
+def infer(prompt):
+    input_formatted = "<bos>" + prompt + "<eos>"
+    inputs = tokenizer.encode(input_formatted, return_tensors="pt").to("cuda")
+    outputs = model.generate(inputs, max_length=100)
+    generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return generated_text
 
 
 def train_and_validate(trainer_data, val_data, model_pass, optimizer, scheduler_pass, epoch_pass):
-
     model_pass.train()
-    train_loss = 0
     val_loss = 0
     num_iterations = 0
     accumulation_steps = 3
@@ -50,6 +56,9 @@ def train_and_validate(trainer_data, val_data, model_pass, optimizer, scheduler_
         # Training loop
         start = time.time()
         for batch in tqdm(trainer_data, desc=f'Training Epoch {epochR}, Batch', leave=True):
+            if batch is None:
+                # Skip the last empty batch (As the multicore Encoder returns NoneType for last index)
+                continue
             inputs, targets = batch
             optimizer.zero_grad()
             outputs = model_pass(inputs)
@@ -60,22 +69,25 @@ def train_and_validate(trainer_data, val_data, model_pass, optimizer, scheduler_
                 optimizer.step()
                 scheduler_pass.step(loss)
                 num_iterations = 0
-            #del loss, inputs, targets, outputs
-            #torch.cuda.empty_cache()
-            #accelerator.free_memory()
+            # del loss, inputs, targets, outputs
+            # torch.cuda.empty_cache()
+            # accelerator.free_memory()
         end = time.time()
         epochTime = end - start
-        torch.cuda.empty_cache()
-        accelerator.free_memory()
 
         # Validation loop
         model_pass.eval()
         for batch in tqdm(val_data, desc='Validation Batch', leave=True):
+            if batch is None:
+                continue  # Skip the last empty batch
             inputs, targets = batch
             outputs = model_pass(inputs)
             loss = criterion(outputs.logits.view(-1, outputs.logits.size(-1)), targets.view(-1))
             accelerator.backward(loss)
             val_loss += loss.item()
+
+        torch.cuda.empty_cache()
+        accelerator.free_memory()
 
         val_loss /= len(val_data)
 
@@ -88,8 +100,8 @@ def train_and_validate(trainer_data, val_data, model_pass, optimizer, scheduler_
             writer.writerow([epochR + 1, val_loss, epochTime])
 
         accelerator.wait_for_everyone()
-        unwrapped_model = accelerator.unwrap_model(model)
-        torch.save(unwrapped_model.state_dict(), f"model_state_{epochR}.pt")
+        # unwrapped_model = accelerator.unwrap_model(model)
+        # torch.save(unwrapped_model.state_dict(), f"model_state_{epochR}.pt")
 
 
 if __name__ == '__main__':
@@ -126,7 +138,7 @@ if __name__ == '__main__':
         validation_data = LoadWikiText('validation')
         validation_data.save_to_json('wikitext-103-v1-validation.json')
     # Instantiate preprocessing class object with current tokenizer and specified train dataset JSON file
-    ValidationChatData = GPTData('wikitext-103-v1-validation.json', tokenizer)
+    ValidationChatData = multi_core_GPTDATA('wikitext-103-v1-validation.json', tokenizer)
 
     # Create distributed version of the dataset
     ValidationChatData = DataLoader(ValidationChatData, batch_size=6, pin_memory=False)
@@ -143,6 +155,13 @@ if __name__ == '__main__':
                                                                                      ValidationChatData)
     # Call Training Function, Will write a CSV file
     # Train loop
-    epoch = 20
+    epoch = 3
+    print("Fine-tuning...")
     train_and_validate(TrainChatData, ValidationChatData, model, optim, scheduler, epoch)
     print("successful fine-tuning...")
+    print("Testing Model Training Results With Validation Prompt...")
+    ModelGeneration = infer(
+        "Generate a coherent and grammatically correct paragraph of text on the topic of the United States of "
+        "America. Make sure the generated text demonstrates a deep understanding of the subject matter and maintains "
+        "a consistent tone throughout.")
+    print(ModelGeneration)

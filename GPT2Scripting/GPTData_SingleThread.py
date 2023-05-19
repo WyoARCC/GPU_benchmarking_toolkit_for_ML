@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 
 
-class GPTData(Dataset):
+class GPTData_SingleThread(Dataset):
     # noinspection PyPep8Naming
     def __init__(self, path: str, tokenizer_pp):
         self.data = json.load(open(path, 'r', encoding="utf-8"))
