@@ -1,0 +1,9 @@
+jobid: 
+node: bhm06
+# CPUs: 56
+time: Fri May 19 13:56:00 MDT 2023
+cmd: bash scripts/download_dataset.sh
+ElapsedTime(s),Threads(#),%CPU,VmSize(kB),VmRSS(kB),rchar(bytes),wchar(bytes)
+1684526160,1,0.0,5792,3352,41720,119
+1684526161,1,0.0,5792,3360,55791,256
+1684526162,1,0.0,5792,3360,0,0

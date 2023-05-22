@@ -329,23 +329,26 @@ def main():
                                                                          'Default is 5 inches.')
     cl_parser.add_argument('-W', '--width', type=float, default=10, help='Width for generated plots. '
                                                                          'Default is 10 inches.')
-    cl_parser.add_argument('-i', '--interval', type=int, default=30, help='Interval in minutes between labels on x axis.'
-                                                                          ' Default is 30.')
+    cl_parser.add_argument('-i', '--interval', type=int, default=30,
+                           help='Interval in minutes between labels on x axis. Default is 30.')
     cl_parser.add_argument('-n', '--no-legend', action='store_true', help='Remove the legend for generated plots.')
     cl_parser.add_argument('-r', '--rename', type=str, help='Base file name to rename generated plots to.')
     cl_parser.add_argument('-s', '--split', action='store_true', help='Split multiple GPUs out into separate plots.')
     cl_parser.add_argument('-p', '--sub-plot', action='store_true', help='Display GPU and CPU utilization as subplots.')
     cl_parser.add_argument('-o', '--offset', type=int, default=0, help='Time in hours to offset the GPU timing.')
-    cl_parser.add_argument('--cpu-files', nargs='+', help='List of memprof.csv files. '
-                                                          'Ex) memprof-42.csv memprof-1138.csv...')
-    cl_parser.add_argument('-d', '--memprof-dir', type=str, help='Directory containing the CSV files created by memprof.')
+    cl_parser.add_argument('--memprof-files', nargs='+', help='List of memprof.csv files. '
+                                                              'Ex) memprof-42.csv memprof-1138.csv...')
+    cl_parser.add_argument('-d', '--memprof-dir', type=str,
+                           help='Directory containing the CSV files created by memprof.')
+    cl_parser.add_argument('-c', '--plot-cpu', action='store_true',
+                           help='Plot the CPU utilization on the GPU utilization plot.')
     cl_args = cl_parser.parse_args()
     logfile_name = cl_args.filename
     height = cl_args.height
     width = cl_args.width
     no_legend = cl_args.no_legend
     event_interval = cl_args.interval
-    cpu_files = cl_args.cpu_files
+    memprof_files = cl_args.memprof_files
     memprof_dir = cl_args.memprof_dir
     if cl_args.rename is not None:
         save_name = cl_args.rename
@@ -380,9 +383,9 @@ def main():
         vram_utilization.append(event.ram_use)
         sorted_events[gpu_id] = sub_list
     event_key_list = sorted(sorted_events)
-    if cpu_files is not None and memprof_dir is None:
+    if memprof_files is not None and memprof_dir is None:
         cpu_events = []
-        for file in cpu_files:
+        for file in memprof_files:
             cpu_log_file = open(file, 'r')
             cpu_events = cpu_events + process_cpu_log(cpu_log_file)
             cpu_log_file.close()
@@ -390,7 +393,7 @@ def main():
         if zero_time < cpu_events[0].time_stamp.timestamp():
             zero_time = cpu_events[0].time_stamp.timestamp()
         shift_cpu_event_times(cpu_events, zero_time)
-    elif cpu_files is None and memprof_dir is not None:
+    elif memprof_files is None and memprof_dir is not None:
         cpu_events = []
         memprof_file = os.listdir(memprof_dir)
         for file in memprof_file:
@@ -404,12 +407,16 @@ def main():
         if zero_time < cpu_events[0].time_stamp.timestamp():
             zero_time = cpu_events[0].time_stamp.timestamp()
         shift_cpu_event_times(cpu_events, zero_time)
-    elif cpu_files is not None and memprof_dir is not None:
+    elif memprof_files is not None and memprof_dir is not None:
         print("Please use either the cpu-files flag or memprof-dir flag. Not both.")
         sys.exit(1)
     else:
         cpu_events = None
     shift_gpu_event_times(sorted_events, event_key_list, zero_time)
+    if memprof_files is not None or memprof_dir is not None:
+        create_cpu_plot(cpu_events, height, width, event_interval, no_legend, save_name)
+    if cl_args.plot_cpu is False:
+        cpu_events = None
     if cl_args.split is True:
         for i in range(len(event_key_list)):
             file_name = f"{save_name}_{i}"
@@ -452,8 +459,7 @@ def main():
         source = "VRAM"
         create_gpu_plot(sorted_events, event_key_list, height, width, event_interval, no_legend, save_name,
                         plot_name, xlabel, ylabel, source, cpu_events, False)
-    if cpu_files is not None or memprof_dir is not None:
-        create_cpu_plot(cpu_events, height, width, event_interval, no_legend, save_name)
+
 
 
 if __name__ == "__main__":
