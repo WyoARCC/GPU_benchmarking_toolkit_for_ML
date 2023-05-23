@@ -10,6 +10,9 @@ Most of the files in this folder are from [coqui-ai's TTS repository](https://gi
 ## Release notes
 
 ### Changelog
+2023/05/23
+- Added call to nvidia-smi to run_test.sh so the GPU being tested is displayed.
+
 2023/05/17
 - Removed stops in run_test.sh
 
