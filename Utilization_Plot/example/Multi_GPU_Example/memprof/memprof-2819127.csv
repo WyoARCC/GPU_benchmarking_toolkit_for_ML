@@ -1,9 +1,0 @@
-jobid: 
-node: b525
-# CPUs: 56
-time: Mon May 22 09:18:20 MDT 2023
-cmd: bash scripts/download_dataset.sh
-ElapsedTime(s),Threads(#),%CPU,VmSize(kB),VmRSS(kB),rchar(bytes),wchar(bytes)
-1684768700,1,0.0,5792,3428,41719,117
-1684768701,1,0.0,5792,3440,53743,256
-1684768702,1,0.0,5792,3440,0,0
