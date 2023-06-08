@@ -8,16 +8,17 @@ import os
 import csv
 from GPTData import GPTData
 from GPTData_SingleThread import GPTData_SingleThread
-from DataSetsForLLM import LoadWikiText
+from DataSetsForLLM import LoadWikiText, LoadOpenWebText  # , LoadOpenWebText
 from tqdm import tqdm
 from torch.optim import Adam, lr_scheduler
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 import torch.cuda
 from accelerate import Accelerator
-import torch
-from multiprocessing import freeze_support
+# import torch
 import time
+
+# import torch.multiprocessing as mp
 
 # Define Device for Training
 num_gpus = os.environ.get('NUM_GPUS', -1)
@@ -25,23 +26,88 @@ accelerator = Accelerator(mixed_precision='fp16')
 criterion = CrossEntropyLoss()
 
 
+def open_wikiText():
+    if os.path.isfile('wikitext-103-v1-train.json'):
+        print('Loading Training JSON File...')
+    else:
+        print('Generating Training JSON Files...')
+        train_data = LoadWikiText('train')
+        train_data.save_to_json('wikitext-103-v1-train.json')
+        # Load Wikitext-103-v1 Validation Split and convert it to .json formatting
+    if os.path.isfile('wikitext-103-v1-validation.json'):
+        print('Loading Validation JSON File...')
+    else:
+        print('Generating Validation JSON Files...')
+        validation_data = LoadWikiText('validation')
+        validation_data.save_to_json('wikitext-103-v1-validation.json')
+    # Instantiate preprocessing class object with current tokenizer and specified train dataset JSON file
+    print("Preprocessing...")
+    TrainingChatData = multi_core_GPTDATA('wikitext-103-v1-train.json', tokenizer)
+    ValidatingChatData = multi_core_GPTDATA('wikitext-103-v1-validation.json', tokenizer)
+    # Create distributed version of the dataset
+    print("Distributing Data Sets...")
+    TrainingChatData = DataLoader(TrainingChatData, batch_size=32, shuffle=True)
+    ValidatingChatData = DataLoader(ValidatingChatData, batch_size=32, pin_memory=False)
+
+    return TrainingChatData, ValidatingChatData
+
+
+def open_OpenWebText():
+    if os.path.isfile('openwebtext-train.json'):
+        print('Loading Training JSON File...')
+    else:
+        print('Generating Training JSON Files...')
+        train_data = LoadOpenWebText()
+        train_data.save_to_json('openwebtext-train.json')
+
+    if os.path.isfile('wikitext-103-v1-validation.json'):
+        print('Loading Validation JSON File...')
+    else:
+        print('Generating Validation JSON Files...')
+        validation_data = LoadWikiText('validation')
+        validation_data.save_to_json('wikitext-103-v1-validation.json')
+
+    print("Preprocessing...")
+    TrainingChatData = multi_core_GPTDATA('openwebtext-train.json', tokenizer)
+    ValidatingChatData = multi_core_GPTDATA('openwebtext-validation.json', tokenizer)
+
+    print("Distributing Data Sets...")
+    TrainingChatData = DataLoader(TrainingChatData, batch_size=32, shuffle=True)
+    ValidatingChatData = DataLoader(ValidatingChatData, batch_size=32, pin_memory=False)
+
+    return TrainingChatData, ValidatingChatData
+
+
 def multi_core_GPTDATA(filename: str, tokenizer_mc):
     # print("error print if >1")
-    temp_set = GPTData(path=filename, tokenizer_pp=tokenizer_mc, batch_size=32, num_workers=5)
-    temp_set.load_data()
+    temp_set = GPTData(json_path=filename, tokenizer=tokenizer_mc)
     return temp_set
 
 
+# yes
 def single_core_GPTDATA(filename: str, tokenizer_sc):
     tmp_set = GPTData_SingleThread(path=filename, tokenizer_pp=tokenizer_sc)
     return tmp_set
 
 
+def GPT2_Tokenizer():
+    tokenizerGrab = GPT2TokenizerFast.from_pretrained("gpt2-medium")
+    tokenizerGrab.pad_token = '<pad>'
+    tokenizerGrab.eos_token = '<eos>'
+    tokenizerGrab.bos_token = '<bos>'
+    return tokenizerGrab
+
+
 # Have the model conduct Inferences
+
 def infer(prompt):
-    input_formatted = "<bos>" + prompt + "<eos>"
-    inputs = tokenizer.encode(input_formatted, return_tensors="pt").to("cuda")
-    outputs = model.generate(inputs, max_length=100)
+    inputs = tokenizer.encode(prompt, return_tensors="pt")
+    attention_mask = torch.ones(inputs.shape, dtype=torch.long)
+    if torch.cuda.is_available():
+        inputs = inputs.to("cuda")
+        attention_mask = attention_mask.to("cuda")
+        model.to("cuda")
+    outputs = model.generate(inputs, attention_mask=attention_mask, pad_token_id=tokenizer.eos_token_id, max_length=150)
     generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return generated_text
 
@@ -65,13 +131,13 @@ def train_and_validate(trainer_data, val_data, model_pass, optimizer, scheduler_
             loss = criterion(outputs.logits.view(-1, outputs.logits.size(-1)), targets.view(-1))
             accelerator.backward(loss)
             num_iterations += 1
+            # Gradient Accumulation
             if num_iterations == accumulation_steps:
                 optimizer.step()
                 scheduler_pass.step(loss)
                 num_iterations = 0
-            # del loss, inputs, targets, outputs
-            # torch.cuda.empty_cache()
-            # accelerator.free_memory()
+
+        accelerator.free_memory()
         end = time.time()
         epochTime = end - start
 
@@ -83,13 +149,16 @@ def train_and_validate(trainer_data, val_data, model_pass, optimizer, scheduler_
             inputs, targets = batch
             outputs = model_pass(inputs)
             loss = criterion(outputs.logits.view(-1, outputs.logits.size(-1)), targets.view(-1))
-            accelerator.backward(loss)
-            val_loss += loss.item()
+            val_loss += accelerator.gather(loss)
 
         torch.cuda.empty_cache()
         accelerator.free_memory()
 
         val_loss /= len(val_data)
+        print(f"Test Response for Epoch: {epochR}")
+        TempModelGeneration = infer(
+            "Albert Einstein was ")
+        print(TempModelGeneration)
 
         # Save model and write validation loss to CSV file
         accelerator.save(model_pass.state_dict(), f"model_state_{epochR}.pt")
@@ -100,68 +169,44 @@ def train_and_validate(trainer_data, val_data, model_pass, optimizer, scheduler_
             writer.writerow([epochR + 1, val_loss, epochTime])
 
         accelerator.wait_for_everyone()
-        # unwrapped_model = accelerator.unwrap_model(model)
-        # torch.save(unwrapped_model.state_dict(), f"model_state_{epochR}.pt")
 
 
 if __name__ == '__main__':
-    freeze_support()
     # tokenizer Declaration and special token Declaration
-    tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
-    tokenizer.pad_token = '<pad>'
-    tokenizer.eos_token = '<eos>'
-    tokenizer.bos_token = '<bos>'
-
+    tokenizer = GPT2_Tokenizer()
     # Model Declaration
-    model = GPT2LMHeadModel.from_pretrained("gpt2")
+    model = GPT2LMHeadModel.from_pretrained("gpt2-medium")
     model.resize_token_embeddings(len(tokenizer))
-    model.to(accelerator.device)
-    # Load Wikitext-103-v1 Train Split and convert it to .json formatting
-    if os.path.isfile('wikitext-103-v1-train.json'):
-        print('Loading Training JSON File...')
-    else:
-        print('Generating Training JSON File...')
-        train_data = LoadWikiText('train')
-        train_data.save_to_json('wikitext-103-v1-train.json')
-
-    # Instantiate preprocessing class object with current tokenizer and specified train dataset JSON file
-    TrainChatData = multi_core_GPTDATA('wikitext-103-v1-train.json', tokenizer)
-
-    # Create distributed version of the dataset
-    print("Distributing Data Set...")
-    TrainChatData = DataLoader(TrainChatData, batch_size=6, shuffle=True)
-
-    # Load Wikitext-103-v1 Validation Split and convert it to .json formatting
-    if os.path.isfile('wikitext-103-v1-validation.json'):
-        print('Loading Validation JSON File...')
-    else:
-        validation_data = LoadWikiText('validation')
-        validation_data.save_to_json('wikitext-103-v1-validation.json')
-    # Instantiate preprocessing class object with current tokenizer and specified train dataset JSON file
-    ValidationChatData = multi_core_GPTDATA('wikitext-103-v1-validation.json', tokenizer)
-
-    # Create distributed version of the dataset
-    ValidationChatData = DataLoader(ValidationChatData, batch_size=6, pin_memory=False)
-
-    # Set Up Training
+    # Load Data
+    TrainChatData, ValidationChatData = open_wikiText()
+    #TrainChatData, ValidationChatData = open_OpenWebText()
+    # Define Optimizer and Scheduler
     optim = Adam(model.parameters(), lr=5e-6)
     scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2, eta_min=0.0001)
-    # Distributed passthrough
-    # noinspection PyTypeChecker
+    # Accelerate Distributed passthrough
     model, optim, scheduler, TrainChatData, ValidationChatData = accelerator.prepare(model,
                                                                                      optim,
                                                                                      scheduler,
                                                                                      TrainChatData,
                                                                                      ValidationChatData)
-    # Call Training Function, Will write a CSV file
-    # Train loop
-    epoch = 3
-    print("Fine-tuning...")
-    train_and_validate(TrainChatData, ValidationChatData, model, optim, scheduler, epoch)
-    print("successful fine-tuning...")
-    print("Testing Model Training Results With Validation Prompt...")
-    ModelGeneration = infer(
-        "Generate a coherent and grammatically correct paragraph of text on the topic of the United States of "
-        "America. Make sure the generated text demonstrates a deep understanding of the subject matter and maintains "
-        "a consistent tone throughout.")
-    print(ModelGeneration)
+    try:
+        # Call Training Function (Will write a CSV file)
+        epoch = 3
+        # Set Token length per Text Entry
+        # (Entries Longer than specified number will be truncated and Entries Shorter will be Padded)
+        # GPT2 has a max length of 1024 tokens
+        # According to OpenAI, the conversion rate of character to token is 4:1
+        # Cite: https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them
+        os.environ['max_tok_length'] = str(256)
+        # Training RunTime
+        print("Fine-tuning...")
+        train_and_validate(TrainChatData, ValidationChatData, model, optim, scheduler, epoch)
+        print("successful fine-tuning...")
+        print("Testing Model Training Results With Validation Prompt...")
+        for x in range(10):
+            ModelGeneration = infer(
+                "Albert Einstein was ")
+            print(ModelGeneration)
+
+    except KeyboardInterrupt:
+        print("Aborted by the User")

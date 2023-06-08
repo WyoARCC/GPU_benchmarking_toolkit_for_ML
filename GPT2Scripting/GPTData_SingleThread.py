@@ -22,7 +22,10 @@ class GPTData_SingleThread(Dataset):
 
             except:
                 break
-        # Don't access the "text" label
+        # Don't access the "text" label Rather than loading in chunks of the dataset into memory, encoding those
+        # chunks, saving to disk before feeding them to the dataloader; like the multicore method, this file loads
+        # the entire dataset as a single chunk into ram prior to encoding then feeds the entire dataset to the
+        # dataloader. This is only recommended if the
         self.tmpList = self.tmpList[:500000]  # change back to :-1
 
         self.tmpList_encoded = []
