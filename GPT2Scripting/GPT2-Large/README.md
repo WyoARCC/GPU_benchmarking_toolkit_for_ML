@@ -1,5 +1,5 @@
-
 GPT2-Large Chatbot
+
 This repository contains code for training and using a GPT2-Large chatbot model on the OpenWebtext dataset. The model is implemented using PyTorch and utilizes the built-in Adam optimizer for training.
 
 Model Details
