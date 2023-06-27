@@ -1,21 +1,24 @@
 # Author: Tyson Limato
 # project: GPU Benchmarking
-# Model: Training BERT with glue from HuggingFace
+# Model: Training GPT2 with Wikitext103-v1 from HuggingFace
 # Backend: Pytorch
-
-from torch.nn.utils import clip_grad_norm_
-from torch.nn.utils.rnn import pad_sequence
-from transformers import BertForMaskedLM, AutoTokenizer
+# High level Imports
 import os
 import csv
-from DataSetsForLLM import WikiTextDataset, OpenWebTextDataset, BookCorpusDataset
-from tqdm import tqdm
+import time
+# Pytorch Imports
+from torch.nn.utils import clip_grad_norm_
+from torch.nn.utils.rnn import pad_sequence
 from torch.optim import Adam, lr_scheduler
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 import torch.cuda
+# Hugging Face Imports
+from transformers import GPT2LMHeadModel, AutoTokenizer
+from DataSetsForLLM import WikiTextDataset, OpenWebTextDataset
 from accelerate import Accelerator
-import time
+# Progress Bar Imports
+from tqdm import tqdm
 
 # Define Device for Training
 num_gpus = os.environ.get('CUDA_VISIBLE_DEVICES') if not None else 1
@@ -24,54 +27,117 @@ criterion = CrossEntropyLoss()
 
 
 def open_wikiText():
+    """
+    Parameters
+    None
+
+    Returns
+    TrainingChatData : DataLoader
+        DataLoader object containing the training data for the model.
+    ValidatingChatData : DataLoader
+        DataLoader object containing the validation data for the model.
+
+    Description This function loads and preprocesses the training and validation data files for a chatbot model using
+    the WikiText dataset. It performs the following steps: Loads the training data files. Loads the validation data
+    files. Preprocesses the data. Creates distributed versions of the datasets. Returns the DataLoader objects for
+    training and validation data.
+    """
     print('Loading Training Data Files...')
-    train_data = WikiTextDataset(tokenizer=tokenizer, split='train')
+    train_data = WikiTextDataset('train', tokenizer)
+
+    # Load Wikitext-103-v1 Validation Split and convert it to .json formatting
+    print('Loading Validation Data Files...')
+    validation_data = WikiTextDataset('validation', tokenizer)
     # Instantiate preprocessing class object with current tokenizer and specified train dataset JSON file
     print("Preprocessing...")
     # Create distributed version of the dataset
     print("Distributing Data Sets...")
-    TrainingChatData = DataLoader(train_data, batch_size=32, shuffle=True, collate_fn=collate_fn)
-    return TrainingChatData
+    TrainingChatData = DataLoader(train_data, batch_size=8, shuffle=True, collate_fn=collate_fn)
+    ValidatingChatData = DataLoader(validation_data, batch_size=8, collate_fn=collate_fn)
+    return TrainingChatData, ValidatingChatData
 
 
 def open_WebText():
+    """
+    Parameters
+    None
+
+    Returns
+    TrainingChatData : DataLoader
+        DataLoader object containing the training data for the model.
+    ValidatingChatData : DataLoader
+        DataLoader object containing the validation data for the model.
+
+    Description This function loads and preprocesses the training and validation data files for a chatbot model using
+    the OpenWebText and WikiText datasets. It performs the following steps:
+        Loads the training data files from OpenWebTextDataset.
+        Loads the validation data files from WikiTextDataset.
+        Preprocesses the data.
+        Creates distributed versions of the datasets.
+        Returns the DataLoader objects for training and validation data.
+    """
     print('Loading Training Data Files...')
-    train_data = OpenWebTextDataset(tokenizer=tokenizer, split='train')
-    # Load Wikitext-103-v1 Validation Split and convert it to .json formatting
+    train_data = OpenWebTextDataset(tokenizer, 'train')
     # Instantiate preprocessing class object with current tokenizer and specified train dataset JSON file
     print("Preprocessing...")
     # Create distributed version of the dataset
     print("Distributing Data Sets...")
-    TrainingChatData = DataLoader(train_data, batch_size=32, shuffle=True, collate_fn=collate_fn)
+    TrainingChatData = DataLoader(train_data, batch_size=8, shuffle=True, collate_fn=collate_fn)
     return TrainingChatData
 
 
-def open_BookCorpus():
-    print('Loading Training Data Files...')
-    train_data = BookCorpusDataset(tokenizer=tokenizer, split='train')
-    # Instantiate preprocessing class object with current tokenizer and specified train dataset JSON file
-    print("Preprocessing...")
-    # Create distributed version of the dataset
-    print("Distributing Data Sets...")
-    TrainingChatData = DataLoader(train_data, batch_size=32, shuffle=True, collate_fn=collate_fn)
-    return TrainingChatData
+def GPT2_Tokenizer():
+    """
+    Parameters
+    None
 
+    Returns
+    tokenizerGrab : GPT2Tokenizer
+        GPT2Tokenizer object for tokenizing text using the GPT-2 large model.
 
-def BERT_Large_Tokenizer():
-    tokenizerGrab = AutoTokenizer.from_pretrained("bert-large-cased")
+    Description
+    This function retrieves the GPT2Tokenizer from the 'gpt2-large' pretrained model. It performs the following steps:
+        Retrieves the tokenizer using AutoTokenizer.from_pretrained().
+        Sets the padding token to '<pad>'.
+        Sets the end-of-sequence token to '<eos>'.
+        Sets the beginning-of-sequence token to '<bos>'.
+        Returns the GPT2Tokenizer object.
+    """
+    tokenizerGrab = AutoTokenizer.from_pretrained("gpt2-large")
+    tokenizerGrab.pad_token = '<pad>'
+    tokenizerGrab.eos_token = '<eos>'
+    tokenizerGrab.bos_token = '<bos>'
     return tokenizerGrab
 
 
 def collate_fn(batch):
+    """
+    Parameters
+    batch : List
+        A list of dictionaries, where each dictionary represents
+        a batch item with 'input_ids' and 'attention_mask' keys.
+
+    Returns
+    input_ids : Tensor
+        Padded tensor of shape (batch_size, max_sequence_length) containing the input IDs for each batch item.
+    attention_masks : Tensor
+        Padded tensor of shape (batch_size, max_sequence_length) containing the attention masks for each batch item.
+
+    Description This function is a collate function used in data loading for creating batches of data. It takes a
+    batch of samples and performs the following steps:
+        Extracts the 'input_ids' from each dictionary item in the batch.
+        Extracts the 'attention_mask' from each dictionary item in the batch.
+        Pads the 'input_ids' sequences to have the same length within the batch using the pad_sequence function.
+        Pads the 'attention_masks' sequences to have the same length within the batch using the pad_sequence function.
+        Returns the padded 'input_ids' and 'attention_masks' as tensors.
+    """
     input_ids = [item['input_ids'].squeeze() for item in batch]
     attention_masks = [item['attention_mask'].squeeze() for item in batch]
-    token_type_ids = [item['token_type_ids'].squeeze() for item in batch]
 
     input_ids = pad_sequence(input_ids, batch_first=True)
     attention_masks = pad_sequence(attention_masks, batch_first=True)
-    token_type_ids = pad_sequence(token_type_ids, batch_first=True)
 
-    return input_ids, attention_masks, token_type_ids
+    return input_ids, attention_masks
 
 
 # Have the model conduct Inferences
@@ -79,152 +145,113 @@ def collate_fn(batch):
 def infer(prompt, model, tokenizer):
     """
     Parameters
-    ----------
     prompt : str
-        The input prompt for generating predictions.
+        The input prompt for generating text.
 
-    Description
-    -----------
-    This function performs text inference using a pre-trained language model. It takes an
-    input prompt and generates predictions for masked tokens in the prompt using the following steps:
+    Returns
+    generated_text : str
+        The generated text based on the input prompt.
 
-    1. Encode the input prompt using the tokenizers `encode_plus` method, returning a dictionary of input tensors.
-    2. Locate the masked token(s) in the input tensor.
-    3. If a CUDA-enabled GPU is available, move the input tensors and the model to the GPU.
-    4. Disable gradient calculations by wrapping the following code block with `torch.no_grad()`.
-    5. Generate output from the model by passing the input tensors as keyword arguments.
-    6. Retrieve the logits from the output.
-    7. Get the logits for the masked word(s) by indexing the logits tensor with the mask indices.
-    8. Find the top 5 predicted tokens and their indices based on the highest logits.
-    9. Calculate the probabilities of each token prediction by applying softmax to the mask word logits.
-    10. Convert the top 5 token indices and their probabilities to lists.
-    11. Print out the predicted words and their probabilities.
+    Description This function performs text generation using a pre-trained language model. It takes an input prompt
+    and generates text based on the prompt using the following steps:
 
-    Note: The `tokenizer` and `model` variables used in this function need to be defined and available
-    in the current scope.
-
+    Encodes the input prompt using the tokenizer, returning a tensor representation of the input.
+    Creates an attention mask tensor of ones with the same shape as the input tensor.
+    If a CUDA-enabled GPU is available,
+    moves the input tensor and attention mask tensor to the GPU and sets the model to use the GPU.
+    Generates text
+    using the model's generate method, passing the input tensor, attention mask, and the ID for the end-of-sentence
+    token as the padding token ID.
+    Decodes the generated output tensor into human-readable text, skipping any special tokens.
+    Returns the generated text.
     """
-    # Encode the input prompt, looking for masked tokens
-    inputs = tokenizer.encode_plus(prompt, return_tensors="pt")
-    # Locate the masked token(s)
-    mask_index = torch.where(inputs["input_ids"][0] == tokenizer.mask_token_id)[0]
-
+    inputs = tokenizer.encode(prompt, return_tensors="pt")
+    attention_mask = torch.ones(inputs.shape, dtype=torch.long)
     if torch.cuda.is_available():
-        # Move everything to the GPU if available
-        inputs = {k: v.to("cuda") for k, v in inputs.items()}
+        inputs = inputs.to("cuda")
+        attention_mask = attention_mask.to("cuda")
         model.to("cuda")
-    with torch.no_grad():
-        # Generate output from the model
-        outputs = model(**inputs)
-
-    # Retrieve the logits from the output
-    logits = outputs.logits
-    # Get the logits for the masked word(s)
-    mask_word_logits = logits[0, mask_index, :]
-    # Find the top 5 predicted tokens and their indices
-    top_5_tokens = torch.topk(mask_word_logits, 5, dim=1).indices[0].tolist()
-    # Calculate the probabilities of each token prediction
-    probabilities = torch.nn.functional.softmax(mask_word_logits, dim=1)[0]
-    top_5_token_probs = probabilities[top_5_tokens].tolist()
-    # Print out the predicted words and their probabilities
-    for i, token in enumerate(top_5_tokens):
-        word = tokenizer.decode([token])
-        probability = top_5_token_probs[i]
-        print(f"{word}: {probability}")
+    outputs = model.generate(inputs, attention_mask=attention_mask, pad_token_id=tokenizer.eos_token_id, max_length=150)
+    generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return generated_text
 
 
 def train_and_validate(trainer_data, model_pass, optimizer, scheduler_pass, epoch_pass):
     """
-    train_and_validate
-
-    This function is responsible for training and validating a model using the provided data.
-    It takes several parameters as input and performs the following steps:
-
     Parameters
-    -------------
+    ----------
+    trainer_data : DataLoader
+        DataLoader object containing the training data for the model.
+    model_pass : transformer.GPT2LMHeadModel
+        The model to be trained.
+    optimizer : torch.optim.Optimizer
+        The optimizer used for training the model.
+    scheduler_pass : torch.optim.lr_scheduler._LRScheduler
+        The scheduler used for adjusting the learning rate during training.
+    epoch_pass : int
+        The total number of epochs to train the model.
 
-    trainer_data (iterable):
-        The training data for the model.
-    model_pass (torch.nn.Module):
-        The model to be trained and validated.
-    optimizer (torch.optim.Optimizer):
-        The optimizer used for updating the model's parameters.
-    scheduler_pass (torch.optim.lr_scheduler._LRScheduler):
-        The learning rate scheduler used for adjusting the learning rate during training.
-    epoch_pass (int):
-        The number of training epochs.
+    Returns
+    -------
+    None
 
     Description
-    -------------
+    -----------
+    This function performs the training process for a given model using the specified
+    training data. It follows the following steps:
 
-    1. Initialize the file path and name for saving the training results.
-    2. Set the model to training mode.
-    3. Set the maximum gradient norm to 1.
-    4. Initialize variables for tracking the number of iterations and batch size.
-    5. Set the default tensor type to "torch.FloatTensor".
-    6. Start the training loop for the specified number of
-    epochs.
-    7. Start the timer for tracking the epoch time.
-    8. Initialize an empty list to store the training losses
-    for each batch.
-    9. Iterate over the training data batches using tqdm for progress tracking.
-    10. Skip the last empty batch (if any).
-    11. Extract inputs, attention masks, and token type IDs from the batch.
-    12. Zero the gradients of the optimizer.
-    13. Forward pass the inputs through the model to obtain the outputs.
-    14. Calculate the loss between the outputs and the inputs.
-    15. Perform backward propagation of gradients through the model.
-    16.
-    Increment the number of iterations.
-    17. Append the current batch's loss to the training_losses list.
-    18. Check if
-    the number of iterations equals the accumulation steps.
-    19. If so, clip the gradients to prevent exploding
-    gradients.
-    20. Update the model's parameters using the optimizer.
-    21. Adjust the learning rate using the
-    scheduler.
-    22. Reset the number of iterations to 0.
-    23. Free the memory used by the accelerator (if applicable).
-    24. End the timer for the epoch time.
-    25. Calculate the throughput of the system.
-    26. Save the model's state dictionary to a file with the epoch number in the name.
-    27. Check if the training_results.csv file exists.
-    28. If not, create the file and write the header.
-    29. Open the file in append mode and write the epoch number,
-    batch number, training loss, epoch time, and throughput for each batch.
-    30. Free the memory used by the
-    accelerator (if applicable).
+    1. Sets the model to training mode.
+    2. Initializes variables for tracking training loss, number of iterations, and batch size.
+    3. Sets the default tensor type to "torch.FloatTensor".
+    4. Iterates through each epoch.
+    5. Within each epoch, iterates through each batch of the training data.
+    6. If the batch is None (empty), skips to the next iteration which accounts for the last batch being empty.
+    7. Retrieves inputs and targets from the batch.
+    8. Zeroes the gradients of the optimizer.
+    9. Passes the inputs through the model to get the outputs.
+    10. Calculates the loss using the specified criterion.
+    11. Performs backward propagation of gradients using the accelerator (if available).
+    12. Updates the model parameters based on the gradients and optimizer's update rule.
+    13. Adjusts the learning rate using the scheduler.
+    14. Performs gradient accumulation if the number of iterations reaches the specified accumulation steps.
+    15. Frees memory using the accelerator.
+    16. Calculates the epoch time and throughput.
+    17. Saves the model's state dictionary to a file.
+    18. Writes the training loss, epoch time, and throughput to a CSV file.
 
-    The function performs the training and validation process for the specified number of epochs, saving the model's
-    state after each epoch and recording the training losses, epoch time, and throughput in a CSV file named
-    "training_results.csv".
+    Note
+    ----
+    The validation aspect of the original function has been removed in this version.
 
     """
     # Specify the file path and name
     file_path = 'training_results.csv'
+    # Set the model to training mode
     model_pass.train()
+    # Gradient Clipping Variable
     max_grad_norm = 1
     num_iterations = 0
+    # Gradient Accumulation Variable
     accumulation_steps = 1
+    # Specific to the GPT2 Model, Requires Tensors in Float Form
     torch.set_default_tensor_type("torch.FloatTensor")
     for epochR in range(epoch_pass):
         # Training loop
         start = time.time()
         batch_size = 0
         training_losses = []  # Initialize list to store training losses
-        for batch in tqdm(trainer_data, desc=f'Training Epoch {epochR}, Batch', leave=True):
+        for batch_idx, batch in enumerate(tqdm(trainer_data, desc=f'Training Epoch {epochR}, Batch', leave=True)):
             if batch is None:
                 # Skip the last empty batch (As the multicore Encoder returns NoneType for last index)
                 continue
-            inputs, attention_masks, token_type_ids = batch
+            inputs, targets = batch
             batch_size = len(inputs)
             optimizer.zero_grad()
-            outputs = model_pass(input_ids=inputs, token_type_ids=token_type_ids, attention_mask=attention_masks)
-            loss = criterion(outputs.logits.view(-1, outputs.logits.size(-1)), inputs.view(-1))
+            outputs = model_pass(inputs)
+            loss = criterion(outputs.logits.view(-1, outputs.logits.size(-1)), targets.view(-1))
             accelerator.backward(loss)
             num_iterations += 1
-            # Training loss list
+
             training_losses.append(loss.item())  # Store the training loss
 
             # Gradient Accumulation
@@ -234,11 +261,11 @@ def train_and_validate(trainer_data, model_pass, optimizer, scheduler_pass, epoc
                 optimizer.step()
                 scheduler_pass.step(loss)
                 num_iterations = 0
-
+        # Free Up any unnecessary allocations of VRAM
         accelerator.free_memory()
         end = time.time()
+        # Time For the Epoch to complete (Verifies tqdm estimation)
         epochTime = end - start
-
         # Calculate Throughput of the System
         throughput = batch_size * len(trainer_data) / epochTime
 
@@ -257,14 +284,15 @@ def train_and_validate(trainer_data, model_pass, optimizer, scheduler_pass, epoc
             for batch_num, training_loss in enumerate(training_losses):
                 writer.writerow([epochR, batch_num, training_loss, epochTime, throughput])
 
-    accelerator.free_memory()
+        accelerator.wait_for_everyone()
 
 
 if __name__ == '__main__':
     # tokenizer Declaration and special token Declaration
-    tokenizer = BERT_Large_Tokenizer()
+    tokenizer = GPT2_Tokenizer()
     # Model Declaration
-    model = BertForMaskedLM.from_pretrained("bert-large-cased")
+    model = GPT2LMHeadModel.from_pretrained("gpt2-large")
+    model.resize_token_embeddings(len(tokenizer))
     # Load Data
     TrainChatData = open_WebText()
     # TrainChatData, ValidationChatData = open_OpenWebText()
@@ -279,28 +307,26 @@ if __name__ == '__main__':
                                                                  )
     try:
         # Call Training Function (Will write a CSV file)
-        epoch = 2
+        epoch = 3
         # Set Token length per Text Entry
-        # (Entries Longer than specified number will be truncated and Entries Shorter will be Padded)
+        # (Entries Longer than specified number will be truncated and Entries Shorter will be Padded with empty tokens)
         # GPT2 has a max length of 1024 tokens
         # According to OpenAI, the conversion rate of character to token is 4:1
         # Cite: https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them
+        "Currently this global variable is not in use!"
         os.environ['max_tok_length'] = str(256)
         # Training RunTime
         print("Fine-tuning...")
         train_and_validate(TrainChatData, model, optim, scheduler, epoch)
         print("successful fine-tuning...")
         print("Testing Model Training Results With Validation Prompt...")
-        Test_Prompts = ["Albert Einstein was best known for his [MASK] theory of relativity.",
-                        "The Eiffel Tower is located in [MASK].",
-                        "The largest organ in the human body is the [MASK].",
-                        "The capital of the United States is [MASK].",
-                        "Apple Inc. was co-founded by Steve [MASK].",
-                        "The [MASK] is the closest star to Earth.",
-                        "J.K. Rowling is famous for writing the [MASK] series."]
-        for x in Test_Prompts:
-            print(f"Test: {x}, Prompt: {Test_Prompts[x]}, Results: ")
-            infer(Test_Prompts[x], model, tokenizer)
+        torch.cuda.empty_cache()
+        accelerator.free_memory()
+
+        for x in range(10):
+            ModelGeneration = infer(
+                "Albert Einstein was ", model, tokenizer)
+            print(ModelGeneration)
 
     except KeyboardInterrupt:
         print("Aborted by the User")
