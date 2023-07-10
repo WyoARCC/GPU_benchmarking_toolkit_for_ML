@@ -85,7 +85,7 @@ def open_WebText():
     print("Preprocessing...")
     # Create distributed version of the dataset
     print("Distributing Data Sets...")
-    TrainingChatData = DataLoader(train_data, batch_size=8, shuffle=True, collate_fn=collate_fn)
+    TrainingChatData = DataLoader(train_data, batch_size=16, shuffle=True, collate_fn=collate_fn)
     return TrainingChatData
 
 
