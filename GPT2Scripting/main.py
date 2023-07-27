@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 import torch.cuda
 # Hugging Face Imports
 from transformers import GPT2LMHeadModel, AutoTokenizer
-from DataSetsForLLM import WikiTextDataset, OpenWebTextDataset
+from DataSetsForLLM import WikiTextDataset, OpenWebTextDataset, PileDataset, RedPajamaDataset, StarCoderDataset
 from accelerate import Accelerator
 # Progress Bar Imports
 from tqdm import tqdm
@@ -29,7 +29,7 @@ model_name = os.environ.get('MODEL_NAME') if not None else "gpt2-large"
 precision_type = os.environ.get('PRECISION_TRAIN') if not None else "fp16"
 tokenizer_type = os.environ.get('MODEL_TOKENIZER') if not None else "gpt2-large"
 task_type = os.environ.get("TASK_TYPE") if not None else "finetune"
-benchmark_time_interval = int(os.environ.get('BM_INTERVAL')) if os.environ.get('BM_INTERVAL') is not None else 1
+benchmark_time_interval = int(os.environ.get('BM_INTERVAL')) if os.environ.get('BM_Interval') is not None else 1
 # Define Device for Training
 accelerator = Accelerator(mixed_precision=precision_type)
 criterion = CrossEntropyLoss()
@@ -95,7 +95,84 @@ def open_WebText():
     return TrainingChatData
 
 
-def GPT2_Tokenizer():
+def open_RedPajama():
+    """
+    Parameters
+    None
+
+    Returns
+    TrainingChatData : DataLoader
+        DataLoader object containing the training data for the model.
+
+    Description This function loads and preprocesses the training data files for a chatbot model using
+    the RedPajama-Data-1T-Sample dataset. It performs the following steps:
+        Loads the training data files from RedPajamaDataset.
+        Preprocesses the data.
+        Creates distributed versions of the datasets.
+        Returns the DataLoader objects for training data.
+    """
+    print('Loading Training Data Files...')
+    train_data = RedPajamaDataset(tokenizer, 'train')
+    # Instantiate preprocessing class object with current tokenizer and specified train dataset JSON file
+    print("Preprocessing...")
+    # Create distributed version of the dataset
+    print("Distributing Data Sets...")
+    TrainingChatData = DataLoader(train_data, batch_size=Ben_batch_size, shuffle=True, collate_fn=collate_fn)
+    return TrainingChatData
+
+
+def load_PileData():
+    """
+    Parameters
+    None
+
+    Returns
+    TrainingChatData : DataLoader
+        DataLoader object containing the training data for the model.
+
+    Description This function loads and preprocesses the training data files for a chatbot model using
+    the Pile dataset. It performs the following steps:
+        Loads the training data files from PileDataset.
+        Preprocesses the data.
+        Creates distributed versions of the datasets.
+        Returns the DataLoader objects for training data.
+    """
+    print('Loading Training Data Files...')
+    train_data = PileDataset(tokenizer, 'train')
+    # Instantiate preprocessing class object with current tokenizer and specified train dataset JSON file
+    print("Preprocessing...")
+    # Create distributed version of the dataset
+    print("Distributing Data Sets...")
+    TrainingChatData = DataLoader(train_data, batch_size=Ben_batch_size, shuffle=True, collate_fn=collate_fn)
+    return TrainingChatData
+
+
+def load_StarCoder(coding_language='python'):
+    """
+    Parameters
+    coding_language : str
+        specified dataset subset for https://huggingface.co/datasets/bigcode/starcoderdata
+
+    Returns
+    TrainingChatData : DataLoader
+        DataLoader object containing the training data for the model.
+
+    Description This function loads and preprocesses the training data files for a chatbot model using
+    the StarCoder dataset. It performs the following steps:
+        Loads the training data files from StarCoderDataset.
+        Preprocesses the data.
+        Creates distributed versions of the datasets.
+        Returns the DataLoader objects for training data.
+    """
+    print('Loading Training Data Files...')
+    train_data = StarCoderDataset(tokenizer, data_dir=coding_language, split='train')
+    print("Preprocessing...")
+    print("Distributing Data Sets...")
+    TrainingChatData = DataLoader(train_data, batch_size=Ben_batch_size, shuffle=True, collate_fn=collate_fn)
+    return TrainingChatData
+
+
+def Grab_Tokenizer():
     """
     Parameters
     None
@@ -511,9 +588,9 @@ if __name__ == '__main__':
     utilization_monitor = threading.Thread(target=monitor_system_utilization, args=(Measure_interval,))
     utilization_monitor.start()
     # tokenizer Declaration and special token Declaration
-    tokenizer = GPT2_Tokenizer()
+    tokenizer = Grab_Tokenizer()
     # Model Declaration
-    model = GPT2LMHeadModel.from_pretrained("gpt2-large")
+    model = GPT2LMHeadModel.from_pretrained(model_name)
     model.resize_token_embeddings(len(tokenizer))
     # Load Data
     TrainChatData = open_WebText()
