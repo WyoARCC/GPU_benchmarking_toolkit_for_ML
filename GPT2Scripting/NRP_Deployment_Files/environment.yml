@@ -1,0 +1,21 @@
+name: gpt2_nrp
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - cudatoolkit=10.1
+  - pip
+  - pip:
+    - numpy
+    - pillow
+    - torch
+    - torchvision
+    - tqdm
+    - transformers
+    - datasets
+    - accelerate
+    - numpy
+    - matplotlib
+    - gpustat
