@@ -1,7 +1,0 @@
-torch~=2.0.0
-torchvision==0.10.0+cu102 -f https://download.pytorch.org/whl/cu102/torch_stable.html
-transformers~=4.28.1
-tqdm~=4.65.0
-datasets~=2.11.0
-accelerate~=0.18.0
-numpy~=1.24.2
