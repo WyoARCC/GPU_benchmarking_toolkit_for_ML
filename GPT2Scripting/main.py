@@ -416,7 +416,7 @@ def monitor_system_utilization(interval):
 
     """
     file_path = 'CPU_RAM_Utilization.csv'
-    with open(file_path, mode='a', newline='') as results_file:
+    with open(file_path, mode='w', newline='') as results_file:
         writer = csv.writer(results_file)
         writer.writerow(['Core Time', 'CPU Utilization', 'Thread Count', 'RAM Utilization (%)', 'RAM Utilization (MB)'])
 
