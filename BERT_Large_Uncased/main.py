@@ -619,9 +619,10 @@ if __name__ == '__main__':
                         "Apple Inc. was co-founded by Steve [MASK].",
                         "The [MASK] is the closest star to Earth.",
                         "J.K. Rowling is famous for writing the [MASK] series."]
-        for x in Test_Prompts:
-            print(f"Test: {x}, Prompt: {Test_Prompts[x]}, Results: ")
-            infer(Test_Prompts[x])
+        for idx, prompt in enumerate(Test_Prompts):
+            print(f"Test: {idx}, Prompt: {prompt}, Results: ")
+            infer(prompt)
+
 
     except KeyboardInterrupt:
         print("Aborted by the User")
