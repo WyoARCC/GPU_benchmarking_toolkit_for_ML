@@ -600,11 +600,6 @@ if __name__ == '__main__':
     try:
         # Call Training Function (Will write a CSV file)
         epoch = int(os.environ.get('NUM_EPOCHS')) if os.environ.get('NUM_EPOCHS') is not None else 1
-        # Set Token length per Text Entry
-        # (Entries Longer than specified number will be truncated and Entries Shorter will be Padded)
-        # GPT2 has a max length of 1024 tokens
-        # According to OpenAI, the conversion rate of character to token is 4:1
-        # Cite: https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them
         # Training RunTime
         print("Fine-tuning...")
         train_model(TrainChatData, model, optim, scheduler, epoch)
