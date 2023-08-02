@@ -43,8 +43,12 @@ echo "Environmental Variables Initialized."
 gpustat -a -i 30 > gpustat.log 2>&1 &
 echo "Starting LLM Benchmark"
 accelerate launch main.py
+conda deactivate
 
+conda activate /pfs/tc1/project/arcc-students/tlimato/BERT_SHDev/BERT_Testing
 python Plot_nonGPU_functions.py
 conda deactivate
 
+conda activate /pfs/tc1/project/arcc-students/tlimato/BERT_SHDev/BERT_Testing
 python utilization_plot.py gpustat.log -i 25
+conda deactivate
