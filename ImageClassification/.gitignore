@@ -1,2 +1,4 @@
 __pycache__/
-checkpoint.pth model_0.pth model_1.pth
+checkpoint.pth
+model_0.pth
+model_1.pth
