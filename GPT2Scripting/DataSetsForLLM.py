@@ -83,7 +83,7 @@ class PileDataset:
 class RedPajamaDataset:
     def __init__(self, tokenizer, split='train'):
         # Load the RedPajama-Data-1T-Sample dataset with the specified split
-        self.data = load_dataset("togethercomputer/RedPajama-Data-1T-Sample", split=split)
+        self.data = load_dataset("togethercomputer/RedPajama-Data-1T", split=split)
         self.tokenizer = tokenizer
 
     def __getitem__(self, idx):
