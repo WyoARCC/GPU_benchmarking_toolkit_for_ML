@@ -1,3 +1,8 @@
+# Author: Dr. Jian Gong
+# Project: University of Wyoming - ARCC GPU Benchmarking Toolkit
+# Model: Image Classification Benchmark based on Nvidia Example
+# Backend: PyTorch
+
 # Image classification reference training scripts
 
 This folder contains reference training scripts for image classification.
