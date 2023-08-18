@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 from datetime import datetime
-
-from accelerate.utils import tqdm
+from tqdm import tqdm
 
 
 def plot_all_columns(file_path, save_path):
@@ -818,7 +817,7 @@ def remove_redundant_headers(file_path):
     # Find the index of the first occurrence of the header
     header_index = None
     for i, row in enumerate(data):
-        if 'Epoch' in row[0] and 'Core' in row[0]:
+        if 'Epoch' in row[0] and 'Core' in row[1]:  # Assuming 'Epoch' and 'Core' are in the first two columns
             header_index = i
             break
 
@@ -865,6 +864,47 @@ def remove_quotes_from_csv(file_path):
             csv_writer.writerow(cleaned_row)
 
 
+def clean_csv(input_file, output_file="default"):
+    if output_file == "default":
+        output_file = input_file
+
+    # Read the CSV file
+    with open(input_file, 'r', newline='', encoding='utf-8', errors='replace') as csv_file:
+        data = csv_file.read()
+
+    # Remove NUL characters from the data
+    clean_data = data.replace('\x00', '')
+
+    # Write the clean data to a new CSV file
+    with open(output_file, 'w', newline='', encoding='utf-8') as out_file:
+        out_file.write(clean_data)
+
+    # Read the cleaned CSV data
+    cleaned_data = []
+    with open(output_file, 'r', newline='', encoding='utf-8', errors='replace') as cleaned_csv_file:
+        for line in cleaned_csv_file:
+            cleaned_data.append(line.strip().split(','))
+
+    if cleaned_data[-1] == ['']:
+        cleaned_data.pop()
+    # Find duplicate values in the "Batch" column
+    header = cleaned_data[0]
+    batch_index = header.index("Batch")
+    unique_batches = set()
+    final_cleaned_data = [header]
+    for row in cleaned_data[1:]:
+        if len(row) > batch_index:
+            batch_value = row[batch_index]
+            if batch_value not in unique_batches:
+                unique_batches.add(batch_value)
+                final_cleaned_data.append(row)
+
+    # Write the final cleaned data to a new CSV file
+    with open(output_file, 'w', newline='', encoding='utf-8') as final_out_file:
+        for row in final_cleaned_data:
+            final_out_file.write(','.join(row) + '\n')
+
+
 # Function to measure execution time
 def measure_time(func):
     start_time = time.time()
@@ -876,15 +916,14 @@ def measure_time(func):
 
 def preprocess_data():
     print("Preprocessing Data...")
+    remove_redundant_headers('training_results.csv')
+    remove_redundant_headers('CPU_RAM_Utilization.csv')
     remove_nul_from_csv('training_results.csv', 'training_results.csv')
     remove_nul_from_csv('CPU_RAM_Utilization.csv', 'CPU_RAM_Utilization.csv')
 
     remove_non_ascii('training_results.csv', 'training_results.csv')
     remove_non_ascii('CPU_RAM_Utilization.csv', 'CPU_RAM_Utilization.csv')
-
-    remove_redundant_headers('training_results.csv')
-    remove_redundant_headers('CPU_RAM_Utilization.csv')
-
+    clean_csv('training_results.csv')
     clean_strings_quotes_from_csv('training_results.csv')
     clean_strings_quotes_from_csv('CPU_RAM_Utilization.csv')
 
