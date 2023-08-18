@@ -2,7 +2,7 @@
 
 #SBATCH --account=arcc-students
 #SBATCH --time=60:00:00
-#SBATCH --job-name=GPUBenchMarkBERTA30
+#SBATCH --job-name=GPUBenchMarkBERTV100
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=10
@@ -10,8 +10,9 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=tlimato@uwyo.edu
 #SBATCH --output=GPUBenchMarkBERT_%A.log
+#SBATCH --partition=dgx
 #SBATCH --gres=gpu:2
-#SBATCH --partition=beartooth-gpu
+#SBATCH --nodelist=tdgx01
 
 
 echo $SLURM_JOB_ID
@@ -32,7 +33,7 @@ echo "Activate Conda Environment:"
 conda activate /pfs/tc1/project/arcc-students/tlimato/BERT_SHDev/BERT_Testing
 
 echo "Creating Environment Variables:"
-export BATCH_TRAIN_SIZE=32
+export BATCH_TRAIN_SIZE=64
 export MODEL_NAME="bert-large-uncased"
 export MODEL_TOKENIZER="bert-large-uncased"
 export PRECISION_TRAIN="fp16"
@@ -43,12 +44,10 @@ echo "Environmental Variables Initialized."
 gpustat -a -i 30 > gpustat.log 2>&1 &
 echo "Starting LLM Benchmark"
 accelerate launch main.py
-conda deactivate
 
-conda activate /pfs/tc1/project/arcc-students/tlimato/BERT_SHDev/BERT_Testing
 python Plot_nonGPU_functions.py
 conda deactivate
 
 conda activate /pfs/tc1/project/arcc-students/tlimato/BERT_SHDev/BERT_Testing
-python utilization_plot.py gpustat.log -i 25
+python utilization_plot.py gpustat.log -i 50
 conda deactivate

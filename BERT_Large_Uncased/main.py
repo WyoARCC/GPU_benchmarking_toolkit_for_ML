@@ -201,7 +201,7 @@ def infer(prompt):
     prompt : str
         The input prompt for generating predictions.
 
-    Description
+    Description :
     -----------
     This function performs text inference using a pre-trained language model. It takes an
     input prompt and generates predictions for masked tokens in the prompt using the following steps:
@@ -252,10 +252,11 @@ def infer(prompt):
         probability = top_5_token_probs[i]
         csv_data.append([word, probability])
 
-    # Write data to CSV
-    with open('Model_Sample_Inferences.csv', 'w', newline='') as file:
+    # Write CSV data to a file
+    csv_filename = "predictions.csv"  # Specify the desired file name
+    with open(csv_filename, mode="w", newline="") as file:
         writer = csv.writer(file)
-        writer.writerow(["Word", "Probability"])
+        writer.writerow(["Predicted Word", "Probability"])
         writer.writerows(csv_data)
 
 
@@ -600,6 +601,11 @@ if __name__ == '__main__':
     try:
         # Call Training Function (Will write a CSV file)
         epoch = int(os.environ.get('NUM_EPOCHS')) if os.environ.get('NUM_EPOCHS') is not None else 1
+        # Set Token length per Text Entry
+        # (Entries Longer than specified number will be truncated and Entries Shorter will be Padded)
+        # GPT2 has a max length of 1024 tokens
+        # According to OpenAI, the conversion rate of character to token is 4:1
+        # Cite: https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them
         # Training RunTime
         print("Fine-tuning...")
         train_model(TrainChatData, model, optim, scheduler, epoch)
@@ -607,6 +613,11 @@ if __name__ == '__main__':
         print("Testing Model Training Results With Validation Prompts...")
         torch.cuda.empty_cache()
         accelerator.free_memory()
+        unwrapped_model = accelerator.unwrap_model(model)
+        unwrapped_model.save_pretrained("~/model",
+                                        is_main_process=accelerator.is_main_process,
+                                        save_function=accelerator.save,
+                                        )
         Test_Prompts = ["Albert Einstein was best known for his [MASK] theory of relativity.",
                         "The Eiffel Tower is located in [MASK].",
                         "The largest organ in the human body is the [MASK].",
@@ -614,10 +625,10 @@ if __name__ == '__main__':
                         "Apple Inc. was co-founded by Steve [MASK].",
                         "The [MASK] is the closest star to Earth.",
                         "J.K. Rowling is famous for writing the [MASK] series."]
-        for idx, prompt in enumerate(Test_Prompts):
-            print(f"Test: {idx}, Prompt: {prompt}, Results: ")
-            infer(prompt)
-
+        model = unwrapped_model
+        for x in Test_Prompts:
+            print(f"Test: {x}, Prompt: {Test_Prompts[x]}, Results: ")
+            infer(Test_Prompts[x])
 
     except KeyboardInterrupt:
         print("Aborted by the User")
