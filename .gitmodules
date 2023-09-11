@@ -1,3 +1,6 @@
 [submodule "Profiler-Toolkit"]
 	path = Profiler-Toolkit
 	url = https://github.com/SlicedCubes/ARCC-Job_Profiler.git
+[submodule "Profiler-Toolkit-Library"]
+	path = Profiler-Toolkit-Library
+	url = https://github.com/SlicedCubes/ARCC-Job_Profiler.git
