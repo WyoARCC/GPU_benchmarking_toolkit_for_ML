@@ -1,5 +1,5 @@
 # GPU_benchmarking_toolkit_for_ML
-Collection of Machine Learning algorithms for providing benchmarks of GPU hardware.
+The ARCC Benchmarking Toolkit is a comprehensive project aimed at providing researchers and developers in the field of machine learning (ML) and artificial intelligence (AI) with essential resources and tools to enhance their projects and push the boundaries of their respective domains. In response to the rapid evolution of ML and AI, this toolkit focuses on benchmarking and performance analysis, catering to evolving requirements and ensuring optimal utilization of cutting-edge computing hardware.
 
 Abstract
 ========
